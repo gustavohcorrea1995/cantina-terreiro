@@ -1,0 +1,17 @@
+{
+  "name": "cantina-terreiro",
+  "version": "1.0.0",
+  "description": "Cantina do terreiro: vendas, estoque, contas dos médiuns e balanço",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "pg": "8.13.1"
+  }
+}

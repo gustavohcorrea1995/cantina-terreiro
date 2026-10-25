@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cantina do Terreiro</title>
+<meta name="theme-color" content="#2B6A4E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cantina">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app de balcão — abas fixas no topo, PDV em duas colunas no tablet deitado, uma coluna no celular/tablet em pé. */
+:root{
+  --bg:#F1F4F0; --surface:#FFFFFF; --surface-2:#E7ECE5; --line:#D3DBD1;
+  --ink:#1A2520; --muted:#5B6A61; --accent:#2B6A4E; --accent-ink:#FFFFFF; --accent-soft:#DAEBE1;
+  --warn:#9A6514; --warn-soft:#FAEED6; --danger:#AE3D2B; --danger-soft:#F7E0DA; --bead1:#2B6A4E; --bead2:#C9A227; --bead3:#AE3D2B;
+  --shadow:0 1px 2px rgba(20,40,30,.06),0 4px 14px rgba(20,40,30,.06);
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101612; --surface:#18201B; --surface-2:#212B24; --line:#2D3931;
+  --ink:#E5ECE7; --muted:#9AA89F; --accent:#6CC197; --accent-ink:#0C1912; --accent-soft:#1D3528;
+  --warn:#E3AE52; --warn-soft:#382C15; --danger:#EC8370; --danger-soft:#3D211C; --bead1:#6CC197; --bead2:#E3C04F; --bead3:#EC8370;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#101612; --surface:#18201B; --surface-2:#212B24; --line:#2D3931;
+  --ink:#E5ECE7; --muted:#9AA89F; --accent:#6CC197; --accent-ink:#0C1912; --accent-soft:#1D3528;
+  --warn:#E3AE52; --warn-soft:#382C15; --danger:#EC8370; --danger-soft:#3D211C; --bead1:#6CC197; --bead2:#E3C04F; --bead3:#EC8370;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+.app{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
+
+/* topo */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:16px 10px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand h1{font-size:1.5rem;line-height:1.1}
+.brand .sub{color:var(--muted);font-size:.85rem}
+.beads{display:flex;gap:4px;margin-top:6px}
+.beads i{width:7px;height:7px;border-radius:50%;background:var(--bead1)}
+.beads i:nth-child(3n+2){background:var(--bead2)}
+.beads i:nth-child(3n){background:var(--bead3)}
+.top-right{display:flex;align-items:center;gap:10px}
+.status{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--accent)}
+.status.bad .dot{background:var(--danger)}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding-block:8px;border-bottom:1px solid var(--line);margin-bottom:18px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:transparent;padding:10px 16px;border-radius:999px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;min-height:44px}
+.tab[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.tab:hover:not([aria-current="page"]){background:var(--surface-2);color:var(--ink)}
+
+/* elementos */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:600;cursor:pointer;min-height:44px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.danger{color:var(--danger);border-color:var(--danger-soft);background:var(--danger-soft)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--surface-2)}
+.btn.sm{min-height:34px;padding:6px 10px;font-size:.85rem;border-radius:8px}
+.btn.big{min-height:56px;font-size:1.05rem;width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label,.lbl{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.input,select.input,textarea.input{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:44px}
+textarea.input{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88rem}
+.input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:560px){.grid2,.grid3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.section-head h2{font-size:1.3rem}
+.stack{display:flex;flex-direction:column;gap:18px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:600;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.danger{background:var(--danger-soft);color:var(--danger)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:7px 13px;border-radius:999px;font-weight:600;font-size:.88rem;cursor:pointer;min-height:38px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.banner{padding:12px 14px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-weight:500;margin-bottom:16px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty strong{color:var(--ink);font-family:var(--f-display);font-size:1.1rem}
+
+/* PDV */
+.pdv{display:grid;grid-template-columns:minmax(0,1fr) 370px;grid-template-areas:"prod cart" "recent cart";gap:18px;align-items:start}
+.pdv-prod{grid-area:prod;min-width:0}.pdv .cart{grid-area:cart}.pdv-recent{grid-area:recent;min-width:0}
+@media (max-width:900px){.pdv{grid-template-columns:minmax(0,1fr);grid-template-areas:"prod" "cart" "recent"}}
+.pdv-tools{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:8px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;min-height:104px;cursor:pointer;box-shadow:var(--shadow);transition:transform .08s ease,border-color .1s}
+.pcard:hover{border-color:var(--accent)}
+.pcard:active{transform:scale(.97)}
+.pcard .pn{font-weight:600;line-height:1.2}
+.pcard .pp{font-family:var(--f-display);font-size:1.15rem;font-weight:700}
+.pcard .meta{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.pcard .qbadge{position:absolute;top:-8px;right:-6px;background:var(--accent);color:var(--accent-ink);border-radius:999px;min-width:26px;height:26px;padding:0 7px;display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.cart{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);display:flex;flex-direction:column;gap:14px}
+@media (max-width:900px){.cart{position:static}}
+.cart h2{font-size:1.2rem}
+.citems{display:flex;flex-direction:column;gap:2px;max-height:38vh;overflow:auto}
+.citem{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.citem .cn{font-weight:600;line-height:1.2}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);font-weight:700;font-size:1.1rem;cursor:pointer}
+.qty span{min-width:26px;text-align:center;font-weight:700}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--ink);padding-top:10px}
+.total .v{font-family:var(--f-display);font-size:2rem;font-weight:700}
+.paygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.paybtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;min-height:48px;font-weight:600;cursor:pointer;font-size:.9rem}
+.paybtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.paybtn:disabled{opacity:.4;cursor:not-allowed}
+.troco{display:flex;justify-content:space-between;font-weight:600}
+.cartbar{display:none}
+@media (max-width:900px){
+  .cartbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;gap:12px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .cartbar .btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+}
+.recent{margin-top:4px}
+.pcard.noprice{border-style:dashed;box-shadow:none}
+
+/* tabelas */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+td.num,th.num{font-variant-numeric:tabular-nums}
+tr.cancel td{opacity:.5;text-decoration:line-through}
+tr.cancel td:last-child{text-decoration:none;opacity:1}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--surface-2)}
+.items-sm{font-size:.82rem;color:var(--muted)}
+
+/* médiuns */
+.mlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.mcard{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer;min-height:72px}
+.mcard:hover{border-color:var(--accent)}
+.mcard .mn{font-weight:600}
+.mcard.off{opacity:.55}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700;flex:none}
+
+/* balanço */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.kpi .k{font-size:.76rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.kpi .v{font-family:var(--f-display);font-size:1.6rem;font-weight:700;margin-top:4px;line-height:1.1}
+.kpi .d{font-size:.82rem;color:var(--muted);margin-top:4px}
+.kpi.hero{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kpi.hero .k,.kpi.hero .d{color:var(--accent-ink);opacity:.85}
+.kpi.neg .v{color:var(--danger)}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.ledger{display:flex;flex-direction:column}
+.ledger .li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.ledger .li.tot{border-bottom:0;border-top:2px solid var(--ink);font-weight:700;margin-top:4px}
+.bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
+
+/* período */
+.period{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.period .custom{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.period .custom .input{width:auto;min-height:38px;padding:6px 10px}
+
+/* modal */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,20,15,.45);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 24px max(12px,env(safe-area-inset-left,0px))}
+.modal{background:var(--bg);border-radius:16px;width:100%;max-width:620px;box-shadow:0 20px 60px rgba(0,0,0,.3);margin:auto 0}
+.modal.wide{max-width:860px}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.mhead h2{font-size:1.25rem}
+.mbody{padding:18px;display:flex;flex-direction:column;gap:14px}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--line)}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+.toast.err{background:var(--danger);color:#fff}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1 id="brand-name">Cantina do Terreiro</h1>
+      <span class="sub" id="brand-sub">Vendas, estoque e contas dos médiuns</span>
+      <div class="beads" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="top-right">
+      <span class="status" id="status"><span class="dot"></span><span id="status-t">Conectando…</span></span>
+      <button class="btn sm ghost" data-act="config" type="button">Ajustes</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Seções">
+    <button class="tab" data-tab="vender" type="button">Vender</button>
+    <button class="tab" data-tab="vendas" type="button">Vendas</button>
+    <button class="tab" data-tab="mediuns" type="button">Médiuns</button>
+    <button class="tab" data-tab="estoque" type="button">Produtos e estoque</button>
+    <button class="tab" data-tab="balanco" type="button">Balanço</button>
+  </nav>
+  <div id="notice"></div>
+  <main id="view"></main>
+</div>
+<div id="cartbar"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+"use strict";
+/* ---------- utilidades ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const BRL = new Intl.NumberFormat("pt-BR", {style:"currency", currency:"BRL"});
+const money = v => BRL.format(Number(v) || 0);
+const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
+const r3 = v => Math.round((Number(v) || 0) * 1000) / 1000;
+const qfmt = v => { const n = r3(v); return Number.isInteger(n) ? String(n) : n.toLocaleString("pt-BR", {maximumFractionDigits:3}); };
+const pct = v => (isFinite(v) ? (v * 100).toLocaleString("pt-BR", {maximumFractionDigits:1}) : "0") + "%";
+function num(s){
+  if (typeof s === "number") return s;
+  s = String(s ?? "").trim().replace(/[R$\s]/g, "");
+  if (!s) return NaN;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  return Number(s);
+}
+const pad = n => String(n).padStart(2, "0");
+const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseDay = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const fmtDay = s => { if (!s) return ""; const [y,m,d] = s.split("-"); return `${d}/${m}/${y}`; };
+const fmtDayShort = s => { const [,m,d] = s.split("-"); return `${d}/${m}`; };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const today = () => isoDay(new Date());
+const nowHora = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const byName = (a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", {sensitivity:"base"});
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const initials = n => String(n || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const PAG = {dinheiro:"Dinheiro", pix:"Pix", credito:"Crédito", debito:"Débito", caju:"Caju", conta:"Na conta"};
+const PAG_CAIXA = ["dinheiro", "pix", "credito", "debito", "caju"];
+const PAG_LABEL = k => PAG[k] || (k === "cartao" ? "Cartão" : k);
+const MOV = {entrada:"Entrada (compra)", perda:"Perda / quebra", ajuste:"Ajuste de inventário", inicial:"Estoque inicial"};
+const CATS_SUG = ["Comidas", "Salgados", "Doces", "Bebidas", "Bebidas alcoólicas", "Velas", "Artigos religiosos", "Ervas", "Outros"];
+
+const deviceId = (() => {
+  const mk = () => "d" + Math.random().toString(36).slice(2, 10);
+  try { let v = localStorage.getItem("cantina-device"); if (!v) { v = mk(); localStorage.setItem("cantina-device", v); } return v; } catch { return mk(); }
+})();
+function prefGet(k, d){ try { const v = localStorage.getItem("cantina-" + k); return v == null ? d : JSON.parse(v); } catch { return d; } }
+function prefSet(k, v){ try { localStorage.setItem("cantina-" + k, JSON.stringify(v)); } catch {} }
+
+/* ---------- estado ---------- */
+const S = {
+  tab: prefGet("tab", "vender"),
+  produtos: [], mediuns: [], vendas: [], vendasHoje: [], movs: [], despesas: [], pagamentos: [],
+  config: {},
+  loaded: {produtos:false, mediuns:false},
+  period: prefGet("period", {key:"mes", start:"", end:""}),
+  periodTruncated: false,
+  cart: [], cartMedium: "", cartPag: "dinheiro",
+  search: "", cat: "Todas", vendasBusca: "", mBusca: "", eBusca: "",
+  canWrite: true, noDb: false, connected: false,
+};
+let SENHA = prefGet("senha", "");
+
+/* ---------- período ---------- */
+function periodRange(){
+  const p = S.period, t = new Date(), td = isoDay(t);
+  switch (p.key){
+    case "hoje": return [td, td];
+    case "7d": return [isoDay(addDays(t, -6)), td];
+    case "mespassado": return [isoDay(new Date(t.getFullYear(), t.getMonth()-1, 1)), isoDay(new Date(t.getFullYear(), t.getMonth(), 0))];
+    case "ano": return [`${t.getFullYear()}-01-01`, td];
+    case "custom": {
+      let s = p.start || td, e = p.end || td;
+      if (s > e) [s, e] = [e, s];
+      const minS = isoDay(new Date(parseDay(e).getFullYear(), parseDay(e).getMonth() - 11, 1));
+      if (s < minS) s = minS;
+      return [s, e];
+    }
+    default: return [isoDay(new Date(t.getFullYear(), t.getMonth(), 1)), td];
+  }
+}
+function monthSegments(start, end){
+  const segs = []; const e = parseDay(end);
+  let d = parseDay(start); d = new Date(d.getFullYear(), d.getMonth(), 1);
+  while (d <= e){
+    const ms = isoDay(d), me = isoDay(new Date(d.getFullYear(), d.getMonth()+1, 0));
+    segs.push([ms < start ? start : ms, me > end ? end : me]);
+    d = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  }
+  return segs;
+}
+function periodLabel(){
+  const [s, e] = periodRange();
+  return s === e ? fmtDay(s) : `${fmtDay(s)} a ${fmtDay(e)}`;
+}
+function periodBar(){
+  const k = S.period.key;
+  const opt = [["hoje","Hoje (gira)"],["7d","7 dias"],["mes","Este mês"],["mespassado","Mês passado"],["ano","Este ano"],["custom","Escolher datas"]];
+  const [s, e] = periodRange();
+  return `<div class="period">
+    <div class="chips" role="group" aria-label="Período">${opt.map(([v,l]) => `<button type="button" class="chip" data-act="period" data-k="${v}" aria-pressed="${k===v}">${l}</button>`).join("")}</div>
+    ${k === "custom" ? `<div class="custom"><input class="input" type="date" id="p-start" value="${s}" aria-label="Data inicial"> <span class="muted">até</span> <input class="input" type="date" id="p-end" value="${e}" aria-label="Data final"></div>` : `<span class="muted small">${periodLabel()}</span>`}
+  </div>${S.periodTruncated ? `<div class="banner">Muitas vendas neste período: algumas podem não aparecer. Escolha um período menor.</div>` : ""}`;
+}
+
+/* ---------- dados (servidor) ---------- */
+class Sessao extends Error {}
+async function api(method, url, body){
+  let r;
+  try {
+    r = await fetch(url, {method, headers: {"Content-Type": "application/json", "x-senha": encodeURIComponent(SENHA)}, body: body ? JSON.stringify(body) : undefined, cache: "no-store"});
+  } catch { throw new Error("Sem conexão com a internet. Tente de novo."); }
+  let j = null; try { j = await r.json(); } catch {}
+  if (r.status === 401){ showLogin(); throw new Sessao("Senha necessária."); }
+  if (!r.ok) throw new Error(j?.erro || "Não foi possível concluir. Tente de novo.");
+  return j;
+}
+const dbErr = e => e?.message || "Não foi possível concluir.";
+let versao = -1, carregando = false, deNovo = false;
+async function refresh(){
+  if (carregando){ deNovo = true; return; }
+  carregando = true;
+  try {
+    const [s, e] = periodRange();
+    const j = await api("GET", `/api/estado?inicio=${s}&fim=${e}`);
+    versao = j.versao; S.serverHoje = j.hoje;
+    S.produtos = j.produtos; S.mediuns = j.mediuns; S.config = j.config || {};
+    S.vendas = j.vendas; S.vendasHoje = j.vendasHoje; S.movs = j.movs; S.despesas = j.despesas; S.pagamentos = j.pagamentos;
+    S.periodTruncated = j.vendas.length >= 20000;
+    S.loaded.produtos = S.loaded.mediuns = true;
+    setStatus("ok"); schedule();
+  } catch (e){ if (!(e instanceof Sessao)) setStatus("bad"); }
+  finally { carregando = false; if (deNovo){ deNovo = false; refresh(); } }
+}
+async function poll(){
+  try {
+    const j = await api("GET", "/api/versao");
+    setStatus("ok");
+    if (j.versao !== versao || j.hoje !== S.serverHoje) refresh();
+  } catch (e){ if (!(e instanceof Sessao)) setStatus("bad"); }
+}
+async function mut(method, url, body){ const j = await api(method, url, body); refresh(); return j; }
+function guardWrite(){ return true; }
+function showLogin(msg){
+  if ($("#login")) return;
+  setStatus("", "Aguardando senha");
+  const d = document.createElement("div"); d.id = "login"; d.className = "overlay";
+  d.innerHTML = `<form class="modal" style="max-width:420px" id="login-form" novalidate>
+    <div class="mhead"><h2>Cantina do Terreiro</h2></div>
+    <div class="mbody"><p class="muted" style="margin:0">Digite a senha da cantina para usar o sistema neste aparelho. Ela fica guardada aqui até você sair.</p>
+      <div class="field"><label for="login-senha">Senha</label><input class="input" id="login-senha" type="password" autocomplete="current-password"></div>
+      <div id="login-err" class="small" style="color:var(--danger);min-height:1.2em">${esc(msg || "")}</div></div>
+    <div class="mfoot"><button class="btn primary big" type="submit">Entrar</button></div></form>`;
+  document.body.appendChild(d);
+  setTimeout(() => $("#login-senha")?.focus(), 50);
+  $("#login-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const s = $("#login-senha").value;
+    try {
+      const r = await fetch("/api/login", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({senha: s})});
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok){ $("#login-err").textContent = j.erro || "Senha incorreta."; return; }
+      SENHA = s; prefSet("senha", s); d.remove(); refresh();
+    } catch { $("#login-err").textContent = "Sem conexão com o servidor. Tente de novo."; }
+  });
+}
+
+/* ---------- render ---------- */
+let rq = 0;
+function schedule(){ if (!rq) rq = requestAnimationFrame(() => { rq = 0; render(); }); }
+function render(){
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.tab === S.tab ? "page" : "false"));
+  const nome = S.config.nome ? `Cantina · ${S.config.nome}` : "Cantina do Terreiro";
+  $("#brand-name").textContent = nome;
+  // preserva foco e valores digitados durante atualizações em tempo real
+  const view = $("#view");
+  const act = document.activeElement;
+  const focusId = act && view.contains(act) ? act.id : null;
+  const sel = focusId && act.setSelectionRange && act.type !== "date" && act.type !== "number" ? [act.selectionStart, act.selectionEnd] : null;
+  const vals = {};
+  view.querySelectorAll("input[id],select[id],textarea[id]").forEach(el => { if (el.type !== "checkbox") vals[el.id] = el.value; });
+  const fn = {vender: viewVender, vendas: viewVendas, mediuns: viewMediuns, estoque: viewEstoque, balanco: viewBalanco}[S.tab] || viewVender;
+  view.innerHTML = fn();
+  for (const [id, v] of Object.entries(vals)){ const el = document.getElementById(id); if (el && el.dataset.keep !== "no" && view.contains(el)) el.value = v; }
+  if (focusId){ const el = document.getElementById(focusId); if (el){ el.focus(); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch {} } }
+  renderNotice(); renderCartbar(); updateTroco();
+  if (modalLive) modalLive();
+}
+function renderNotice(){
+  let h = "";
+
+  $("#notice").innerHTML = h;
+}
+function setStatus(kind, text){
+  const el = $("#status"); el.className = "status " + (kind || "");
+  $("#status-t").textContent = text || (kind === "ok" ? "Sincronizado" : kind === "bad" ? "Sem conexão" : "Conectando…");
+}
+const prodMap = () => new Map(S.produtos.map(p => [p.id, p]));
+const medMap = () => new Map(S.mediuns.map(m => [m.id, m]));
+function stockPill(p){
+  const e = Number(p.estoque) || 0, min = Number(p.estoqueMinimo) || 0;
+  if (e <= 0) return `<span class="pill danger num">${e < 0 ? qfmt(e) : "Sem estoque"}</span>`;
+  if (min && e <= min) return `<span class="pill warn num">${qfmt(e)} ${esc(p.unidade || "un")}</span>`;
+  return `<span class="pill num">${qfmt(e)} ${esc(p.unidade || "un")}</span>`;
+}
+
+/* ----- Vender ----- */
+function cartTotals(){
+  const pm = prodMap(); let total = 0, n = 0;
+  const lines = S.cart.map(c => { const p = pm.get(c.id); if (!p) return null; const sub = r2((Number(p.preco)||0) * c.qtd); total += sub; n += c.qtd; return {p, qtd:c.qtd, sub}; }).filter(Boolean);
+  return {lines, total: r2(total), n};
+}
+function viewVender(){
+  const ativos = S.produtos.filter(p => p.ativo !== false).sort(byName);
+  const cats = ["Todas", ...[...new Set(ativos.map(p => p.categoria || "Outros"))].sort((a,b) => a.localeCompare(b, "pt-BR"))];
+  if (!cats.includes(S.cat)) S.cat = "Todas";
+  const q = norm(S.search);
+  const list = ativos.filter(p => (S.cat === "Todas" || (p.categoria || "Outros") === S.cat) && (!q || norm(p.nome).includes(q)));
+  const inCart = new Map(S.cart.map(c => [c.id, c.qtd]));
+  let grid;
+  if (!S.loaded.produtos && !S.noDb) grid = `<div class="empty">Carregando produtos…</div>`;
+  else if (!ativos.length) grid = `<div class="panel empty"><strong>Nenhum produto cadastrado</strong><span>Cadastre o que a cantina vende (salgados, bebidas, velas…) com preço de custo e de venda.</span><button class="btn primary" data-act="prod-new" type="button">Cadastrar produto</button></div>`;
+  else if (!list.length) grid = `<div class="empty">Nenhum produto encontrado.</div>`;
+  else grid = `<div class="pgrid">${list.map(p => !(Number(p.preco) > 0) ? `<button type="button" class="pcard noprice" data-act="prod-setprice" data-id="${p.id}">
+      <span class="pn">${esc(p.nome)}</span>
+      <span class="meta"><span class="pill warn">Definir preço</span></span>
+    </button>` : `<button type="button" class="pcard" data-act="add" data-id="${p.id}">
+      ${inCart.get(p.id) ? `<span class="qbadge num">${qfmt(inCart.get(p.id))}</span>` : ""}
+      <span class="pn">${esc(p.nome)}</span>
+      <span class="meta"><span class="pp num">${money(p.preco)}</span>${stockPill(p)}</span>
+    </button>`).join("")}</div>`;
+
+  const {lines, total} = cartTotals();
+  const meds = S.mediuns.filter(m => m.ativo !== false).sort(byName);
+  const med = S.mediuns.find(m => m.id === S.cartMedium);
+  if (!med && S.cartPag === "conta") S.cartPag = "dinheiro";
+  const cart = `<aside class="panel cart" id="cart" aria-label="Venda atual">
+    <div class="row" style="justify-content:space-between"><h2>Venda atual</h2>${lines.length ? `<button class="btn sm ghost" data-act="cart-clear" type="button">Limpar</button>` : ""}</div>
+    <div class="field"><label for="cart-medium">Quem está comprando</label>
+      <select class="input" id="cart-medium" data-keep="no">
+        <option value="">Consulente / visitante (avulso)</option>
+        ${meds.map(m => `<option value="${m.id}" ${m.id === S.cartMedium ? "selected" : ""}>${esc(m.nome)}</option>`).join("")}
+      </select>
+      ${med && (Number(med.saldo)||0) > 0.004 ? `<span class="small" style="color:var(--danger)">Conta em aberto: <b class="num">${money(med.saldo)}</b></span>` : ""}
+    </div>
+    <div class="citems">${lines.length ? lines.map(l => `<div class="citem">
+        <div><div class="cn">${esc(l.p.nome)}</div><div class="small muted num">${money(l.p.preco)} cada</div></div>
+        <div class="qty"><button type="button" data-act="dec" data-id="${l.p.id}" aria-label="Diminuir">−</button><span class="num">${qfmt(l.qtd)}</span><button type="button" data-act="inc" data-id="${l.p.id}" aria-label="Aumentar">+</button></div>
+        <div class="num" style="min-width:76px;text-align:right;font-weight:600">${money(l.sub)}</div>
+      </div>`).join("") : `<div class="muted small" style="padding:10px 0">Toque nos produtos para adicionar.</div>`}</div>
+    <div class="total"><span class="lbl">Total</span><span class="v num">${money(total)}</span></div>
+    <div class="field"><span class="lbl">Pagamento</span>
+      <div class="paygrid">${Object.entries(PAG).map(([k,l]) => `<button type="button" class="paybtn" data-act="pay" data-k="${k}" aria-pressed="${S.cartPag===k}" ${k==="conta" && !med ? "disabled title=\"Escolha um médium para vender na conta\"" : ""}>${l}</button>`).join("")}</div>
+    </div>
+    ${S.cartPag === "dinheiro" ? `<div class="grid2"><div class="field"><label for="cart-recebido">Valor recebido</label><input class="input num" id="cart-recebido" inputmode="decimal" placeholder="0,00" autocomplete="off"></div><div class="field"><span class="lbl">Troco</span><div class="troco num" id="troco" style="min-height:44px;align-items:center">—</div></div></div>` : ""}
+    ${S.cartPag === "conta" ? `<div class="small muted">O valor vai para a conta de <b>${esc(med?.nome)}</b> e pode ser pago depois na aba Médiuns.</div>` : ""}
+    <button class="btn primary big" data-act="checkout" type="button" ${!lines.length ? "disabled" : ""}>Finalizar venda · <span class="num">${money(total)}</span></button>
+  </aside>`;
+
+  const recent = S.vendasHoje.filter(v => !v.cancelada);
+  const totHoje = recent.reduce((a, v) => a + (Number(v.total)||0), 0);
+  const recentHtml = `<section class="recent pdv-recent">
+    <div class="section-head"><h2 style="font-size:1.1rem">Vendas de hoje</h2><span class="muted small num">${recent.length} venda(s) · ${money(totHoje)}</span></div>
+    ${S.vendasHoje.length ? `<div class="tablewrap"><table><thead><tr><th>Hora</th><th>Comprador</th><th>Itens</th><th>Pagamento</th><th class="r">Total</th></tr></thead><tbody>
+      ${S.vendasHoje.slice(0, 8).map(v => `<tr class="${v.cancelada ? "cancel" : ""}"><td class="num">${esc(v.hora)}</td><td>${esc(v.mediumNome || "Avulso")}</td><td class="items-sm">${esc(itensResumo(v))}</td><td>${esc(PAG_LABEL(v.pagamento))}</td><td class="r num">${money(v.total)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="muted small">Nenhuma venda registrada hoje.</div>`}
+  </section>`;
+
+  return `<div class="pdv"><div class="pdv-prod">
+    <div class="pdv-tools">
+      <input class="input" id="pdv-search" type="search" placeholder="Buscar produto…" value="${esc(S.search)}" autocomplete="off">
+      <div class="chips">${cats.map(c => `<button type="button" class="chip" data-act="cat" data-k="${esc(c)}" aria-pressed="${S.cat===c}">${esc(c)}</button>`).join("")}</div>
+    </div>
+    ${grid}
+  </div>${cart}${recentHtml}</div>`;
+}
+function itensResumo(v){ return (v.itens || []).map(i => `${qfmt(i.qtd)}× ${i.nome}`).join(", "); }
+function renderCartbar(){
+  const el = $("#cartbar");
+  if (S.tab !== "vender" || !S.cart.length){ el.innerHTML = ""; return; }
+  const {total, n} = cartTotals();
+  el.innerHTML = `<div class="cartbar"><span><b class="num">${qfmt(n)}</b> item(ns) · <b class="num">${money(total)}</b></span><button class="btn" data-act="goto-cart" type="button">Ver venda</button></div>`;
+}
+function updateTroco(){
+  const inp = $("#cart-recebido"), out = $("#troco"); if (!inp || !out) return;
+  const rec = num(inp.value), {total} = cartTotals();
+  if (!isFinite(rec) || !inp.value.trim()){ out.textContent = "—"; out.style.color = ""; return; }
+  const t = r2(rec - total);
+  out.textContent = t >= 0 ? money(t) : `Faltam ${money(-t)}`;
+  out.style.color = t >= 0 ? "var(--accent)" : "var(--danger)";
+}
+async function checkout(){
+  const {lines, total} = cartTotals(); if (!lines.length) return;
+  const med = S.mediuns.find(m => m.id === S.cartMedium) || null;
+  const pag = S.cartPag;
+  if (pag === "conta" && !med){ toast("Escolha o médium para vender na conta.", true); return; }
+  const rec = num($("#cart-recebido")?.value);
+  const btn = $('[data-act="checkout"]'); if (btn){ btn.disabled = true; btn.textContent = "Registrando…"; }
+  try {
+    const v = await api("POST", "/api/vendas", {mediumId: med ? med.id : null, pagamento: pag, recebido: isFinite(rec) ? rec : null, itens: S.cart.map(c => ({produtoId: c.id, qtd: c.qtd}))});
+    S.cart = []; S.cartMedium = ""; S.cartPag = "dinheiro";
+    const ri = $("#cart-recebido"); if (ri) ri.value = "";
+    render();
+    toast(`Venda registrada · ${money(v.total)}${v.troco > 0 ? ` · troco ${money(v.troco)}` : ""}`);
+    refresh();
+  } catch (e){ toast(dbErr(e), true); render(); }
+}
+
+/* ----- Vendas ----- */
+function viewVendas(){
+  const q = norm(S.vendasBusca);
+  const list = S.vendas.filter(v => !q || norm(v.mediumNome || "avulso").includes(q) || norm(itensResumo(v)).includes(q) || norm(PAG_LABEL(v.pagamento)).includes(q));
+  const ok = list.filter(v => !v.cancelada);
+  const tot = ok.reduce((a, v) => a + (Number(v.total)||0), 0);
+  return `<div class="section-head"><h2>Vendas</h2><span class="muted small num">${ok.length} venda(s) · ${money(tot)}</span></div>
+  ${periodBar()}
+  <div style="margin-bottom:12px;max-width:420px"><input class="input" id="vendas-busca" type="search" placeholder="Buscar por médium, produto ou pagamento…" value="${esc(S.vendasBusca)}"></div>
+  ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Data</th><th>Comprador</th><th>Itens</th><th>Pagamento</th><th class="r">Total</th><th class="r">Lucro</th><th></th></tr></thead><tbody>
+    ${list.map(v => `<tr class="${v.cancelada ? "cancel" : ""}">
+      <td class="num" style="white-space:nowrap">${fmtDay(v.dia)}<div class="small muted">${esc(v.hora)}</div></td>
+      <td>${esc(v.mediumNome || "Avulso")}</td>
+      <td class="items-sm">${esc(itensResumo(v))}</td>
+      <td>${v.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : esc(PAG_LABEL(v.pagamento))}</td>
+      <td class="r num">${money(v.total)}</td>
+      <td class="r num">${money((Number(v.total)||0) - (Number(v.custoTotal)||0))}</td>
+      <td class="r">${v.cancelada ? `<span class="pill">Cancelada</span>` : `<button class="btn sm ghost" data-act="venda-cancel" data-id="${v.id}" type="button">Cancelar</button>`}</td>
+    </tr>`).join("")}
+  </tbody></table></div>` : `<div class="panel empty"><strong>Nenhuma venda no período</strong><span>As vendas registradas na aba Vender aparecem aqui.</span></div>`}`;
+}
+function cancelVenda(id){
+  const v = S.vendas.find(x => x.id === id) || S.vendasHoje.find(x => x.id === id); if (!v) return;
+  confirmBox({
+    title: "Cancelar venda?",
+    text: `Venda de ${money(v.total)} para ${v.mediumNome || "avulso"} em ${fmtDay(v.dia)} às ${v.hora}. Os itens voltam para o estoque${v.pagamento === "conta" ? " e o valor sai da conta do médium" : ""}.`,
+    yes: "Cancelar venda", danger: true,
+    onYes: async () => {
+      try { await mut("POST", "/api/vendas/" + id + "/cancelar"); toast("Venda cancelada"); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+}
+
+/* ----- Médiuns ----- */
+function viewMediuns(){
+  const q = norm(S.mBusca);
+  const comprado = new Map();
+  S.vendas.filter(v => !v.cancelada && v.mediumId).forEach(v => comprado.set(v.mediumId, (comprado.get(v.mediumId)||0) + (Number(v.total)||0)));
+  const list = [...S.mediuns].sort((a,b) => (a.ativo === false) - (b.ativo === false) || byName(a,b)).filter(m => !q || norm(m.nome).includes(q) || norm(m.telefone).includes(q));
+  const aberto = S.mediuns.reduce((a, m) => a + Math.max(0, Number(m.saldo)||0), 0);
+  const devedores = S.mediuns.filter(m => (Number(m.saldo)||0) > 0.004).length;
+  return `<div class="section-head"><div><h2>Médiuns</h2><div class="muted small">${S.mediuns.filter(m=>m.ativo!==false).length} ativo(s) · Em aberto: <b class="num" style="color:${aberto>0?"var(--danger)":"inherit"}">${money(aberto)}</b> (${devedores} conta(s))</div></div>
+    <div class="row"><button class="btn" data-act="med-import" type="button">Adicionar vários</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>
+  <div style="margin-bottom:12px;max-width:420px"><input class="input" id="m-busca" type="search" placeholder="Buscar médium…" value="${esc(S.mBusca)}"></div>
+  ${!S.mediuns.length ? `<div class="panel empty"><strong>Nenhum médium cadastrado</strong><span>Cadastre um por um ou cole a lista inteira de nomes de uma vez.</span><div class="row"><button class="btn" data-act="med-import" type="button">Colar lista de nomes</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>`
+  : `<div class="mlist">${list.map(m => { const sd = Number(m.saldo)||0; return `<button type="button" class="mcard ${m.ativo===false?"off":""}" data-act="med-open" data-id="${m.id}">
+      <span class="row" style="flex-wrap:nowrap;min-width:0"><span class="avatar">${esc(initials(m.nome))}</span><span style="min-width:0"><span class="mn">${esc(m.nome)}</span><br><span class="small muted num">${comprado.get(m.id) ? `Comprou ${money(comprado.get(m.id))} no período` : (m.telefone ? esc(m.telefone) : (m.ativo===false ? "Inativo" : "Sem compras no período"))}</span></span></span>
+      ${sd > 0.004 ? `<span class="pill danger num">Deve ${money(sd)}</span>` : sd < -0.004 ? `<span class="pill ok num">Crédito ${money(-sd)}</span>` : `<span class="pill ok">Em dia</span>`}
+    </button>`; }).join("")}</div>`}
+  <p class="muted small" style="margin-top:14px">Comprado no período: ${periodLabel()} (mude o período em Vendas ou Balanço).</p>`;
+}
+
+/* ----- Produtos e estoque ----- */
+function viewEstoque(){
+  const q = norm(S.eBusca);
+  const all = [...S.produtos].sort((a,b) => (a.ativo === false) - (b.ativo === false) || (a.categoria||"").localeCompare(b.categoria||"", "pt-BR") || byName(a,b));
+  const list = all.filter(p => !q || norm(p.nome).includes(q) || norm(p.categoria).includes(q));
+  const baixos = S.produtos.filter(p => p.ativo !== false && (Number(p.estoque)||0) <= (Number(p.estoqueMinimo)||0));
+  const vCusto = S.produtos.reduce((a, p) => a + Math.max(0, Number(p.estoque)||0) * (Number(p.custo)||0), 0);
+  const vVenda = S.produtos.reduce((a, p) => a + Math.max(0, Number(p.estoque)||0) * (Number(p.preco)||0), 0);
+  const pm = prodMap();
+  return `<div class="section-head"><div><h2>Produtos e estoque</h2><div class="muted small num">Estoque vale ${money(vCusto)} a preço de custo · ${money(vVenda)} a preço de venda</div></div>
+    <div class="row"><button class="btn" data-act="prod-import" type="button">Importar lista</button><button class="btn" data-act="entrada" type="button" ${!S.produtos.length ? "disabled" : ""}>Registrar compra</button><button class="btn primary" data-act="prod-new" type="button">Novo produto</button></div></div>
+  ${baixos.length ? `<div class="panel" style="margin-bottom:14px;border-color:var(--warn);background:var(--warn-soft)"><b style="color:var(--warn)">Repor estoque:</b> <span class="chips" style="display:inline-flex;margin-left:6px">${baixos.sort(byName).map(p => `<button type="button" class="chip" data-act="entrada" data-id="${p.id}">${esc(p.nome)} · ${qfmt(p.estoque||0)}</button>`).join("")}</span></div>` : ""}
+  ${!S.produtos.length ? `<div class="panel empty"><strong>Nenhum produto cadastrado</strong><span>Cadastre cada item com custo, preço de venda e quantidade em estoque. Se já tem uma planilha, use “Importar lista”.</span><div class="row"><button class="btn" data-act="prod-import" type="button">Importar lista</button><button class="btn primary" data-act="prod-new" type="button">Novo produto</button></div></div>` : `
+  <div style="margin-bottom:12px;max-width:420px"><input class="input" id="e-busca" type="search" placeholder="Buscar produto ou categoria…" value="${esc(S.eBusca)}"></div>
+  <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Categoria</th><th class="r">Custo</th><th class="r">Venda</th><th class="r">Margem</th><th class="r">Estoque</th><th class="r">Mín.</th><th class="r">Valor (custo)</th><th></th></tr></thead><tbody>
+  ${list.map(p => { const c = Number(p.custo)||0, pr = Number(p.preco)||0; const mg = pr ? (pr - c) / pr : 0; return `<tr class="click" data-act="prod-edit" data-id="${p.id}">
+    <td><b>${esc(p.nome)}</b>${p.ativo === false ? ` <span class="pill">Fora de venda</span>` : ""}</td>
+    <td class="muted">${esc(p.categoria || "Outros")}</td>
+    <td class="r num">${money(c)}</td><td class="r num">${pr > 0 ? money(pr) : `<span class="pill warn">Sem preço</span>`}</td>
+    <td class="r num" style="color:${mg < 0 ? "var(--danger)" : "inherit"}">${pct(mg)}</td>
+    <td class="r">${stockPill(p)}</td>
+    <td class="r num muted">${qfmt(p.estoqueMinimo || 0)}</td>
+    <td class="r num">${money(Math.max(0, Number(p.estoque)||0) * c)}</td>
+    <td class="r" style="white-space:nowrap"><button class="btn sm" data-act="entrada" data-id="${p.id}" type="button">+ Entrada</button> <button class="btn sm ghost" data-act="ajuste" data-id="${p.id}" type="button">Ajustar</button></td>
+  </tr>`; }).join("")}
+  </tbody></table></div>`}
+  <section style="margin-top:26px">
+    <div class="section-head"><h2 style="font-size:1.1rem">Movimentações de estoque</h2></div>
+    ${periodBar()}
+    ${S.movs.length ? `<div class="tablewrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Produto</th><th class="r">Qtd</th><th class="r">Custo unit.</th><th class="r">Total</th><th>Obs.</th></tr></thead><tbody>
+      ${S.movs.map(m => `<tr><td class="num">${fmtDay(m.dia)}</td><td>${esc(MOV[m.tipo] || m.tipo)}</td><td>${esc(m.nome || pm.get(m.produtoId)?.nome || "")}</td><td class="r num" style="color:${m.qtd < 0 ? "var(--danger)" : "inherit"}">${m.qtd > 0 ? "+" : ""}${qfmt(m.qtd)}</td><td class="r num">${money(m.custoUnit)}</td><td class="r num">${money(m.total)}</td><td class="muted small">${esc(m.obs || "")}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="muted small">Nenhuma movimentação no período. Compras, perdas e ajustes de inventário aparecem aqui.</div>`}
+  </section>`;
+}
+
+/* ----- Balanço ----- */
+function computeBalance(){
+  const vendas = S.vendas.filter(v => !v.cancelada);
+  const B = {fat:0, cmv:0, n:vendas.length, forma:{dinheiro:0,pix:0,credito:0,debito:0,caju:0,conta:0}, receb:{dinheiro:0,pix:0,credito:0,debito:0,caju:0}, recebConta:0, compras:0, ajustes:0, despesas:0, porProduto:new Map(), porMedium:new Map(), porDia:new Map(), avulso:{n:0,total:0}};
+  for (const v of vendas){
+    const t = Number(v.total)||0, c = Number(v.custoTotal)||0;
+    B.fat += t; B.cmv += c;
+    B.forma[v.pagamento] = (B.forma[v.pagamento]||0) + t;
+    B.porDia.set(v.dia, (B.porDia.get(v.dia)||0) + t);
+    if (v.mediumId){
+      const m = B.porMedium.get(v.mediumId) || {nome:v.mediumNome, n:0, total:0, conta:0, pago:0};
+      m.n++; m.total += t; if (v.pagamento === "conta") m.conta += t; else m.pago += t;
+      B.porMedium.set(v.mediumId, m);
+    } else { B.avulso.n++; B.avulso.total += t; }
+    for (const i of v.itens || []){
+      const key = i.produtoId || i.nome;
+      const p = B.porProduto.get(key) || {nome:i.nome, categoria:i.categoria || "Outros", qtd:0, fat:0, custo:0};
+      p.qtd += Number(i.qtd)||0; p.fat += Number(i.subtotal)||0; p.custo += (Number(i.custo)||0) * (Number(i.qtd)||0);
+      B.porProduto.set(key, p);
+    }
+  }
+  for (const p of S.pagamentos){ const v = Number(p.valor)||0; B.recebConta += v; if (B.receb[p.forma] != null) B.receb[p.forma] += v; }
+  for (const m of S.movs){ const t = Number(m.total)||0; if (m.tipo === "entrada") B.compras += t; else if (m.tipo === "perda" || m.tipo === "ajuste") B.ajustes += t; }
+  for (const d of S.despesas) B.despesas += Number(d.valor)||0;
+  B.lucro = B.fat - B.cmv; B.margem = B.fat ? B.lucro / B.fat : 0;
+  B.resultado = B.lucro + B.ajustes - B.despesas;
+  B.entradasCaixa = Object.entries(B.forma).filter(([k]) => k !== "conta").reduce((a, [, v]) => a + v, 0) + B.recebConta;
+  B.saidasCaixa = B.compras + B.despesas;
+  B.saldoCaixa = B.entradasCaixa - B.saidasCaixa;
+  B.aberto = S.mediuns.reduce((a, m) => a + Math.max(0, Number(m.saldo)||0), 0);
+  B.estCusto = S.produtos.reduce((a, p) => a + Math.max(0, Number(p.estoque)||0) * (Number(p.custo)||0), 0);
+  B.estVenda = S.produtos.reduce((a, p) => a + Math.max(0, Number(p.estoque)||0) * (Number(p.preco)||0), 0);
+  return B;
+}
+function chartSvg(B){
+  const [s, e] = periodRange();
+  let pts = [];
+  const days = Math.round((parseDay(e) - parseDay(s)) / 864e5) + 1;
+  if (days <= 62){
+    for (let i = 0; i < days; i++){ const d = isoDay(addDays(parseDay(s), i)); pts.push({l: fmtDayShort(d), v: B.porDia.get(d) || 0}); }
+  } else {
+    const mm = new Map();
+    for (const [d, v] of B.porDia){ const k = d.slice(0, 7); mm.set(k, (mm.get(k)||0) + v); }
+    for (const [ms] of monthSegments(s, e)){ const k = ms.slice(0, 7); pts.push({l: `${k.slice(5)}/${k.slice(2,4)}`, v: mm.get(k) || 0}); }
+  }
+  if (pts.length === 1){ return ""; }
+  const max = Math.max(...pts.map(p => p.v), 0);
+  if (max <= 0) return `<div class="muted small">Sem vendas para mostrar no gráfico.</div>`;
+  const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(max))); const m = max / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; })();
+  const W = 720, H = 220, L = 56, R = 8, T = 10, Bt = 26;
+  const iw = W - L - R, ih = H - T - Bt, bw = iw / pts.length;
+  const y = v => T + ih - (v / nice) * ih;
+  const step = Math.ceil(pts.length / 12);
+  let g = "";
+  for (let k = 0; k <= 4; k++){ const v = nice * k / 4; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v >= 1000 ? (v/1000).toLocaleString("pt-BR") + " mil" : v.toLocaleString("pt-BR")}</text>`; }
+  pts.forEach((p, i) => {
+    const x = L + i * bw, h = (p.v / nice) * ih;
+    if (p.v > 0) g += `<rect x="${x + bw*0.15}" y="${T + ih - h}" width="${Math.max(1, bw*0.7)}" height="${h}" rx="2" style="fill:var(--accent)"><title>${p.l}: ${money(p.v)}</title></rect>`;
+    if (i % step === 0) g += `<text x="${x + bw/2}" y="${H - 8}" text-anchor="middle">${p.l}</text>`;
+  });
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Faturamento por ${days <= 62 ? "dia" : "mês"}">${g}</svg></div>`;
+}
+function viewBalanco(){
+  const B = computeBalance();
+  const prods = [...B.porProduto.values()].sort((a,b) => b.fat - a.fat);
+  const maxFat = Math.max(1, ...prods.map(p => p.fat));
+  const meds = [...B.porMedium.entries()].map(([id, m]) => ({id, ...m})).sort((a,b) => b.total - a.total);
+  const li = (l, v, cls = "") => `<div class="li ${cls}"><span>${l}</span><span class="num">${v}</span></div>`;
+  return `<div class="section-head"><div><h2>Balanço</h2><div class="muted small">${periodLabel()} · ${B.n} venda(s)</div></div>
+    <button class="btn primary" data-act="export" type="button">Exportar para Excel</button></div>
+  ${periodBar()}
+  <div class="stack">
+    <div class="kpis">
+      <div class="kpi"><div class="k">Faturamento</div><div class="v num">${money(B.fat)}</div><div class="d">${B.n} venda(s) · ticket médio ${money(B.n ? B.fat / B.n : 0)}</div></div>
+      <div class="kpi"><div class="k">Custo dos produtos vendidos</div><div class="v num">${money(B.cmv)}</div><div class="d">pelo custo de cada item na hora da venda</div></div>
+      <div class="kpi hero"><div class="k">Lucro bruto</div><div class="v num">${money(B.lucro)}</div><div class="d">margem de ${pct(B.margem)}</div></div>
+      <div class="kpi ${B.resultado < 0 ? "neg" : ""}"><div class="k">Resultado líquido</div><div class="v num">${money(B.resultado)}</div><div class="d">lucro − despesas ${B.ajustes ? "− perdas" : ""}</div></div>
+      <div class="kpi ${B.aberto > 0 ? "neg" : ""}"><div class="k">A receber dos médiuns</div><div class="v num">${money(B.aberto)}</div><div class="d">total em aberto hoje</div></div>
+    </div>
+    <div class="panel"><div class="section-head" style="margin-bottom:6px"><h3 style="font-size:1.05rem">Faturamento ${Math.round((parseDay(periodRange()[1]) - parseDay(periodRange()[0])) / 864e5) + 1 <= 62 ? "por dia" : "por mês"}</h3></div>${chartSvg(B) || `<div class="muted small">Escolha um período com mais de um dia para ver o gráfico.</div>`}</div>
+    <div class="cols2">
+      <div class="panel"><h3 style="font-size:1.05rem;margin-bottom:8px">Resultado</h3><div class="ledger">
+        ${li("Faturamento", money(B.fat))}
+        ${li("(−) Custo dos produtos vendidos", money(-B.cmv))}
+        ${li("<b>Lucro bruto</b>", `<b>${money(B.lucro)}</b>`)}
+        ${li("(−) Perdas e ajustes de estoque", money(B.ajustes))}
+        ${li("(−) Outras despesas", money(-B.despesas))}
+        ${li("Resultado líquido", money(B.resultado), "tot")}
+      </div></div>
+      <div class="panel"><h3 style="font-size:1.05rem;margin-bottom:8px">Caixa do período</h3><div class="ledger">
+        ${PAG_CAIXA.map(k => li("Vendas · " + PAG[k], money(B.forma[k]))).join("")}
+        ${B.forma.cartao ? li("Vendas · Cartão", money(B.forma.cartao)) : ""}
+        ${li("Contas de médiuns recebidas", money(B.recebConta))}
+        ${li("(−) Compras de mercadoria", money(-B.compras))}
+        ${li("(−) Outras despesas", money(-B.despesas))}
+        ${li("Saldo de caixa", money(B.saldoCaixa), "tot")}
+        <div class="small muted" style="margin-top:8px">Vendido na conta (ainda não recebido no caixa): <b class="num">${money(B.forma.conta)}</b>. Estoque atual vale <span class="num">${money(B.estCusto)}</span> a custo.</div>
+      </div></div>
+    </div>
+    <div class="panel"><div class="section-head"><h3 style="font-size:1.05rem">Produtos mais vendidos</h3></div>
+      ${prods.length ? `<div class="tablewrap" style="border:0"><table><thead><tr><th>Produto</th><th class="r">Qtd</th><th class="r">Faturamento</th><th class="r">Custo</th><th class="r">Lucro</th><th class="r">Margem</th><th style="width:22%"></th></tr></thead><tbody>
+      ${prods.map(p => `<tr><td><b>${esc(p.nome)}</b><div class="small muted">${esc(p.categoria)}</div></td><td class="r num">${qfmt(p.qtd)}</td><td class="r num">${money(p.fat)}</td><td class="r num">${money(p.custo)}</td><td class="r num">${money(p.fat - p.custo)}</td><td class="r num">${pct(p.fat ? (p.fat - p.custo) / p.fat : 0)}</td><td><div class="bar"><i style="width:${(p.fat / maxFat * 100).toFixed(1)}%"></i></div></td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="muted small">Sem vendas no período.</div>`}
+    </div>
+    <div class="cols2">
+      <div class="panel"><h3 style="font-size:1.05rem;margin-bottom:8px">Compras por médium</h3>
+        ${meds.length || B.avulso.n ? `<div class="tablewrap" style="border:0"><table><thead><tr><th>Comprador</th><th class="r">Compras</th><th class="r">Total</th><th class="r">Na conta</th></tr></thead><tbody>
+        ${meds.map(m => `<tr class="click" data-act="med-open" data-id="${m.id}"><td>${esc(m.nome)}</td><td class="r num">${m.n}</td><td class="r num">${money(m.total)}</td><td class="r num">${money(m.conta)}</td></tr>`).join("")}
+        ${B.avulso.n ? `<tr><td class="muted">Consulentes / avulso</td><td class="r num">${B.avulso.n}</td><td class="r num">${money(B.avulso.total)}</td><td class="r num">—</td></tr>` : ""}
+        </tbody></table></div>` : `<div class="muted small">Sem vendas no período.</div>`}
+      </div>
+      <div class="panel"><div class="section-head" style="margin-bottom:8px"><h3 style="font-size:1.05rem">Outras despesas</h3><button class="btn sm" data-act="desp-new" type="button">Lançar despesa</button></div>
+        ${S.despesas.length ? `<div class="tablewrap" style="border:0"><table><tbody>
+        ${S.despesas.map(d => `<tr><td class="num" style="white-space:nowrap">${fmtDay(d.dia)}</td><td>${esc(d.descricao)}<div class="small muted">${esc(d.categoria || "")}</div></td><td class="r num">${money(d.valor)}</td><td class="r"><button class="btn sm ghost" data-act="desp-del" data-id="${d.id}" type="button" aria-label="Excluir despesa">Excluir</button></td></tr>`).join("")}
+        </tbody></table></div>` : `<div class="muted small">Gás, descartáveis, embalagens e outros gastos que não são mercadoria para revenda.</div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- modais ---------- */
+let modalLive = null;
+function openModal({title, body, foot = "", wide = false, onSubmit, live}){
+  modalLive = null;
+  $("#modal-root").innerHTML = `<div class="overlay" data-act="modal-bg"><form class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${esc(title)}" id="modal-form" novalidate>
+    <div class="mhead"><h2>${esc(title)}</h2><button type="button" class="btn sm ghost" data-act="modal-close">Fechar</button></div>
+    <div class="mbody">${body}</div>${foot ? `<div class="mfoot">${foot}</div>` : ""}</form></div>`;
+  const f = $("#modal-form");
+  f.addEventListener("submit", e => { e.preventDefault(); onSubmit && onSubmit(new FormData(f), f); });
+  const first = f.querySelector(".mbody input:not([type=hidden]):not([readonly]), .mbody select, .mbody textarea");
+  if (first && window.matchMedia("(pointer:fine)").matches) first.focus();
+  if (live){ modalLive = live; live(); }
+}
+function closeModal(){ modalLive = null; $("#modal-root").innerHTML = ""; }
+function confirmBox({title, text, yes, danger, onYes}){
+  openModal({title, body: `<p style="margin:0">${esc(text)}</p>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Voltar</button><button type="submit" class="btn ${danger ? "danger" : "primary"}">${esc(yes)}</button>`,
+    onSubmit: async () => { closeModal(); await onYes(); }});
+}
+let toastT = 0;
+function toast(msg, err){
+  clearTimeout(toastT);
+  $("#toast-root").innerHTML = `<div class="toast ${err ? "err" : ""}" role="status">${esc(msg)}</div>`;
+  toastT = setTimeout(() => { $("#toast-root").innerHTML = ""; }, err ? 5000 : 2800);
+}
+const catDatalist = () => `<datalist id="cats">${[...new Set([...CATS_SUG, ...S.produtos.map(p => p.categoria).filter(Boolean)])].map(c => `<option value="${esc(c)}">`).join("")}</datalist>`;
+
+/* produto */
+function produtoForm(p){
+  const isNew = !p; p = p || {unidade:"un", ativo:true};
+  openModal({
+    title: isNew ? "Novo produto" : "Editar produto",
+    body: `${catDatalist()}
+      <div class="field"><label for="f-nome">Nome</label><input class="input" id="f-nome" name="nome" required value="${esc(p.nome)}" placeholder="Ex.: Coxinha, Refrigerante lata, Vela 7 dias"></div>
+      <div class="grid2"><div class="field"><label for="f-cat">Categoria</label><input class="input" id="f-cat" name="categoria" list="cats" value="${esc(p.categoria)}" placeholder="Ex.: Salgados"></div>
+      <div class="field"><label for="f-un">Unidade</label><input class="input" id="f-un" name="unidade" value="${esc(p.unidade || "un")}" placeholder="un, lata, kg…"></div></div>
+      <div class="grid3"><div class="field"><label for="f-custo">Preço de custo</label><input class="input num" id="f-custo" name="custo" inputmode="decimal" value="${p.custo != null ? String(p.custo).replace(".", ",") : ""}" placeholder="0,00"></div>
+      <div class="field"><label for="f-preco">Preço de venda</label><input class="input num" id="f-preco" name="preco" inputmode="decimal" value="${p.preco != null ? String(p.preco).replace(".", ",") : ""}" placeholder="0,00"></div>
+      <div class="field"><span class="lbl">Lucro por unidade</span><div id="f-margem" class="num" style="min-height:44px;display:flex;align-items:center;font-weight:600">—</div></div></div>
+      <div class="grid2">${isNew ? `<div class="field"><label for="f-est">Quantidade em estoque agora</label><input class="input num" id="f-est" name="estoque" inputmode="decimal" placeholder="0"></div>` : `<div class="field"><span class="lbl">Estoque atual</span><div class="row" style="min-height:44px"><b class="num">${qfmt(p.estoque || 0)} ${esc(p.unidade || "un")}</b><button type="button" class="btn sm" data-act="ajuste" data-id="${p.id}">Ajustar</button></div></div>`}
+      <div class="field"><label for="f-min">Avisar quando chegar a</label><input class="input num" id="f-min" name="estoqueMinimo" inputmode="decimal" value="${p.estoqueMinimo != null ? String(p.estoqueMinimo).replace(".", ",") : ""}" placeholder="Ex.: 5"></div></div>
+      <label class="row small" style="gap:8px"><input type="checkbox" name="ativo" ${p.ativo !== false ? "checked" : ""} style="width:20px;height:20px"> Disponível para venda (aparece na tela Vender)</label>`,
+    foot: `${!isNew ? `<button type="button" class="btn danger" data-act="prod-del" data-id="${p.id}" style="margin-right:auto">Excluir</button>` : ""}<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">${isNew ? "Cadastrar" : "Salvar"}</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const nome = String(fd.get("nome") || "").trim();
+      if (!nome){ toast("Informe o nome do produto.", true); return; }
+      const custo = num(fd.get("custo")), preco = num(fd.get("preco")), min = num(fd.get("estoqueMinimo"));
+      if (!isFinite(preco) || preco < 0){ toast("Informe o preço de venda (ex.: 6,50).", true); return; }
+      const data = {nome, categoria: String(fd.get("categoria") || "").trim() || "Outros", unidade: String(fd.get("unidade") || "un").trim() || "un",
+        custo: isFinite(custo) ? r2(custo) : 0, preco: r2(preco), estoqueMinimo: isFinite(min) ? r3(min) : 0, ativo: fd.get("ativo") === "on"};
+      try {
+        if (isNew){ const est = num(fd.get("estoque")); data.estoque = isFinite(est) ? r3(est) : 0; await mut("POST", "/api/produtos", data); }
+        else await mut("PUT", "/api/produtos/" + p.id, data);
+        closeModal(); toast(isNew ? "Produto cadastrado" : "Produto salvo");
+      } catch (e){ toast(dbErr(e), true); }
+    }
+  });
+  const upd = () => { const c = num($("#f-custo")?.value), pr = num($("#f-preco")?.value), out = $("#f-margem"); if (!out) return;
+    if (!isFinite(pr)){ out.textContent = "—"; return; } const l = pr - (isFinite(c) ? c : 0); out.textContent = `${money(l)} (${pct(pr ? l / pr : 0)})`; out.style.color = l < 0 ? "var(--danger)" : "var(--accent)"; };
+  $("#f-custo").addEventListener("input", upd); $("#f-preco").addEventListener("input", upd); upd();
+}
+function produtoImport(){
+  openModal({
+    title: "Importar lista de produtos", wide: true,
+    body: `<p class="muted" style="margin:0">Cole uma linha por produto, na ordem <b>Nome; Categoria; Custo; Preço de venda; Estoque</b>. Pode copiar direto de uma planilha do Excel (as colunas separadas por tabulação também funcionam). Só o nome e o preço são obrigatórios.</p>
+      <textarea class="input" id="imp-txt" name="txt" placeholder="Coxinha; Salgados; 2,50; 6,00; 40&#10;Refrigerante lata; Bebidas; 3,20; 6,00; 24&#10;Vela 7 dias branca; Velas; 6,00; 12,00; 10"></textarea>
+      <div id="imp-prev" class="small muted"></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Importar</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const rows = parseProdutos(String(fd.get("txt") || ""));
+      if (!rows.length){ toast("Nenhuma linha válida. Confira o nome e o preço.", true); return; }
+      try { const j = await mut("POST", "/api/produtos/importar", {linhas: rows}); closeModal(); toast(`${j.n} produto(s) importado(s)`); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+  $("#imp-txt").addEventListener("input", e => { const n = parseProdutos(e.target.value).length; $("#imp-prev").textContent = n ? `${n} produto(s) reconhecido(s).` : ""; });
+}
+function parseProdutos(txt){
+  return txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const c = l.split(/\t|;/).map(s => s.trim());
+    const nome = c[0]; const preco = num(c[3]); const custo = num(c[2]); const est = num(c[4]);
+    if (!nome || !isFinite(preco)) return null;
+    if (/^nome$/i.test(nome)) return null;
+    return {nome, categoria: c[1] || "Outros", custo: isFinite(custo) ? r2(custo) : 0, preco: r2(preco), estoque: isFinite(est) ? r3(est) : 0};
+  }).filter(Boolean);
+}
+function entradaForm(pid){
+  const prods = [...S.produtos].sort(byName);
+  const p0 = prods.find(p => p.id === pid) || null;
+  openModal({
+    title: "Registrar compra de mercadoria",
+    body: `<div class="field"><label for="en-prod">Produto</label><select class="input" id="en-prod" name="produto">${prods.map(p => `<option value="${p.id}" ${p.id === pid ? "selected" : ""}>${esc(p.nome)} (estoque ${qfmt(p.estoque || 0)})</option>`).join("")}</select></div>
+      <div class="grid3"><div class="field"><label for="en-qtd">Quantidade comprada</label><input class="input num" id="en-qtd" name="qtd" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label for="en-custo">Custo por unidade</label><input class="input num" id="en-custo" name="custo" inputmode="decimal" value="${p0 ? String(p0.custo ?? "").replace(".", ",") : ""}" placeholder="0,00"></div>
+      <div class="field"><span class="lbl">Total da compra</span><div id="en-tot" class="num" style="min-height:44px;display:flex;align-items:center;font-weight:600">—</div></div></div>
+      <div class="field"><label for="en-dia">Data</label><input class="input" type="date" id="en-dia" name="dia" value="${today()}"></div>
+      <div class="field"><label for="en-obs">Fornecedor / observação</label><input class="input" id="en-obs" name="obs" placeholder="Ex.: Atacadão, nota 1234"></div>
+      <label class="row small" style="gap:8px"><input type="checkbox" name="atualiza" checked style="width:20px;height:20px"> Atualizar o preço de custo do produto com este valor</label>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Registrar entrada</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const p = S.produtos.find(x => x.id === fd.get("produto")); const qtd = num(fd.get("qtd")); const custo = num(fd.get("custo"));
+      if (!p){ toast("Escolha o produto.", true); return; }
+      if (!isFinite(qtd) || qtd <= 0){ toast("Informe a quantidade comprada.", true); return; }
+      const cu = isFinite(custo) ? r2(custo) : Number(p.custo) || 0;
+      const dia = fd.get("dia") || today();
+      try {
+        await mut("POST", "/api/entradas", {produtoId: p.id, qtd: r3(qtd), custo: isFinite(custo) ? cu : null, atualizaCusto: fd.get("atualiza") === "on", dia, obs: String(fd.get("obs") || "").trim()});
+        closeModal(); toast(`Entrada registrada: +${qfmt(qtd)} ${p.nome}`);
+      } catch (e){ toast(dbErr(e), true); }
+    }
+  });
+  const upd = () => { const q = num($("#en-qtd").value), c = num($("#en-custo").value); $("#en-tot").textContent = isFinite(q) && isFinite(c) ? money(q * c) : "—"; };
+  $("#en-qtd").addEventListener("input", upd); $("#en-custo").addEventListener("input", upd);
+  $("#en-prod").addEventListener("change", e => { const p = S.produtos.find(x => x.id === e.target.value); if (p) $("#en-custo").value = String(p.custo ?? "").replace(".", ","); upd(); });
+}
+function ajusteForm(pid){
+  const p = S.produtos.find(x => x.id === pid); if (!p) return;
+  openModal({
+    title: `Ajustar estoque · ${p.nome}`,
+    body: `<div class="muted">Estoque no sistema: <b class="num" style="color:var(--ink)">${qfmt(p.estoque || 0)} ${esc(p.unidade || "un")}</b></div>
+      <div class="chips" role="radiogroup"><label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="radio" name="tipo" value="ajuste" checked> Contagem (inventário)</label><label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="radio" name="tipo" value="perda"> Perda / quebra / vencido</label></div>
+      <div class="field"><label for="aj-q" id="aj-l">Quantidade contada na prateleira</label><input class="input num" id="aj-q" name="q" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label for="aj-obs">Observação</label><input class="input" id="aj-obs" name="obs" placeholder="Ex.: contagem depois da gira, 2 caíram no chão"></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Salvar ajuste</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const tipo = fd.get("tipo"), q = num(fd.get("q"));
+      if (!isFinite(q) || q < 0){ toast("Informe a quantidade.", true); return; }
+      const cur = Number(S.produtos.find(x => x.id === pid)?.estoque) || 0;
+      const delta = tipo === "ajuste" ? r3(q - cur) : -r3(q);
+      if (!delta){ closeModal(); toast("Estoque já confere."); return; }
+      const cu = Number(p.custo) || 0;
+      try {
+        await mut("POST", "/api/ajustes", {produtoId: p.id, tipo, q: r3(q), obs: String(fd.get("obs") || "").trim()});
+        closeModal(); toast("Estoque ajustado");
+      } catch (e){ toast(dbErr(e), true); }
+    }
+  });
+  document.querySelectorAll('#modal-form input[name="tipo"]').forEach(r => r.addEventListener("change", () => {
+    $("#aj-l").textContent = $('#modal-form input[name="tipo"]:checked').value === "ajuste" ? "Quantidade contada na prateleira" : "Quantidade perdida";
+  }));
+}
+
+/* médium */
+function mediumForm(m){
+  const isNew = !m; m = m || {ativo:true};
+  openModal({
+    title: isNew ? "Novo médium" : "Editar médium",
+    body: `<div class="field"><label for="m-nome">Nome</label><input class="input" id="m-nome" name="nome" required value="${esc(m.nome)}"></div>
+      <div class="field"><label for="m-tel">Telefone / WhatsApp</label><input class="input" id="m-tel" name="telefone" inputmode="tel" value="${esc(m.telefone)}" placeholder="(11) 90000-0000"></div>
+      <div class="field"><label for="m-obs">Observação</label><input class="input" id="m-obs" name="obs" value="${esc(m.obs)}" placeholder="Ex.: corrente de quarta, cambone"></div>
+      <label class="row small" style="gap:8px"><input type="checkbox" name="ativo" ${m.ativo !== false ? "checked" : ""} style="width:20px;height:20px"> Ativo (aparece na lista de compradores)</label>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">${isNew ? "Cadastrar" : "Salvar"}</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const nome = String(fd.get("nome") || "").trim(); if (!nome){ toast("Informe o nome.", true); return; }
+      const data = {nome, telefone:String(fd.get("telefone") || "").trim(), obs:String(fd.get("obs") || "").trim(), ativo: fd.get("ativo") === "on"};
+      try {
+        if (isNew) await mut("POST", "/api/mediuns", data);
+        else await mut("PUT", "/api/mediuns/" + m.id, data);
+        closeModal(); toast(isNew ? "Médium cadastrado" : "Dados salvos");
+      } catch (e){ toast(dbErr(e), true); }
+    }
+  });
+}
+function mediumImport(){
+  openModal({
+    title: "Adicionar vários médiuns",
+    body: `<p class="muted" style="margin:0">Cole um nome por linha. Se quiser, coloque o telefone depois de um ponto e vírgula: <b>Maria das Graças; (11) 98888-7777</b></p>
+      <textarea class="input" id="mi-txt" name="txt" placeholder="Maria das Graças&#10;João Batista; (11) 97777-6666&#10;Ana Paula"></textarea><div id="mi-prev" class="small muted"></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Adicionar</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const existing = new Set(S.mediuns.map(m => norm(m.nome)));
+      const rows = String(fd.get("txt") || "").split(/\r?\n/).map(l => l.split(/\t|;/).map(s => s.trim())).filter(c => c[0] && !existing.has(norm(c[0])));
+      if (!rows.length){ toast("Nenhum nome novo para adicionar.", true); return; }
+      try { const j = await mut("POST", "/api/mediuns/importar", {linhas: rows.map(c => ({nome: c[0], telefone: c[1] || ""}))}); closeModal(); toast(`${j.n} médium(ns) adicionado(s)`); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+  $("#mi-txt").addEventListener("input", e => { const n = e.target.value.split(/\r?\n/).filter(l => l.trim()).length; $("#mi-prev").textContent = n ? `${n} nome(s).` : ""; });
+}
+async function mediumOpen(id){
+  const m0 = S.mediuns.find(x => x.id === id); if (!m0) return;
+  let extrato = null;
+  const load = async () => {
+    try {
+      const j = await api("GET", "/api/mediuns/" + encodeURIComponent(id) + "/extrato");
+      extrato = [...j.vendas.map(x => ({k:"v", ...x})), ...j.pagamentos.map(x => ({k:"p", ...x}))].sort((a,b) => (b.data||"").localeCompare(a.data||""));
+    } catch { extrato = []; }
+    if (modalLive) modalLive();
+  };
+  openModal({
+    title: m0.nome, wide: true,
+    body: `<div id="md-live"></div>
+      <div class="panel"><h3 style="font-size:1rem;margin-bottom:10px">Receber pagamento</h3>
+        <div class="grid3"><div class="field"><label for="pg-valor">Valor</label><input class="input num" id="pg-valor" name="valor" inputmode="decimal" placeholder="0,00"></div>
+        <div class="field"><label for="pg-forma">Forma</label><select class="input" id="pg-forma" name="forma">${PAG_CAIXA.map(k => `<option value="${k}">${PAG[k]}</option>`).join("")}</select></div>
+        <div class="field"><span class="lbl">&nbsp;</span><button type="submit" class="btn primary">Registrar pagamento</button></div></div>
+        <div class="field" style="margin-top:10px"><label for="pg-obs">Observação</label><input class="input" id="pg-obs" name="obs" placeholder="Opcional"></div>
+      </div>
+      <div><h3 style="font-size:1rem;margin-bottom:8px">Extrato</h3><div id="md-extrato" class="muted small">Carregando…</div></div>`,
+    foot: `<button type="button" class="btn danger" data-act="med-del" data-id="${id}" style="margin-right:auto">Excluir</button><button type="button" class="btn" data-act="med-edit" data-id="${id}">Editar dados</button><button type="button" class="btn ghost" data-act="modal-close">Fechar</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const m = S.mediuns.find(x => x.id === id); const v = num(fd.get("valor"));
+      if (!isFinite(v) || v <= 0){ toast("Informe o valor recebido.", true); return; }
+      try {
+        await mut("POST", "/api/pagamentos", {mediumId: id, valor: r2(v), forma: fd.get("forma"), obs: String(fd.get("obs") || "").trim()});
+        $("#pg-valor").value = ""; $("#pg-obs").value = "";
+        toast(`Pagamento de ${money(v)} registrado`); load();
+      } catch (e){ toast(dbErr(e), true); }
+    },
+    live: () => {
+      const m = S.mediuns.find(x => x.id === id); const box = $("#md-live"); if (!m || !box) return;
+      const sd = Number(m.saldo) || 0;
+      box.innerHTML = `<div class="row" style="justify-content:space-between">
+        <div><div class="muted small">${esc(m.telefone || "Sem telefone")}${m.obs ? " · " + esc(m.obs) : ""}${m.ativo === false ? " · Inativo" : ""}</div></div>
+        <div style="text-align:right"><div class="lbl">Saldo da conta</div><div class="num" style="font-family:var(--f-display);font-size:1.8rem;font-weight:700;color:${sd > 0.004 ? "var(--danger)" : "var(--accent)"}">${sd > 0.004 ? money(sd) : sd < -0.004 ? "Crédito " + money(-sd) : "Em dia"}</div>
+        ${sd > 0.004 ? `<button type="button" class="btn sm" data-act="pg-quitar" data-v="${r2(sd)}">Quitar tudo</button>` : ""}</div></div>`;
+      const ex = $("#md-extrato"); if (!ex || extrato === null) return;
+      ex.className = "";
+      ex.innerHTML = extrato.length ? `<div class="tablewrap"><table><thead><tr><th>Data</th><th>Lançamento</th><th class="r">Valor</th></tr></thead><tbody>
+        ${extrato.map(x => x.k === "v" ? `<tr class="${x.cancelada ? "cancel" : ""}"><td class="num" style="white-space:nowrap">${fmtDay(x.dia)} ${esc(x.hora || "")}</td><td>${x.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : `<span class="pill">${esc(PAG_LABEL(x.pagamento))}</span>`} <span class="items-sm">${esc(itensResumo(x))}</span></td><td class="r num">${money(x.total)}</td></tr>`
+          : `<tr><td class="num" style="white-space:nowrap">${fmtDay(x.dia)}</td><td><span class="pill ok">Pagamento · ${esc(PAG_LABEL(x.forma))}</span> <span class="items-sm">${esc(x.obs || "")}</span></td><td class="r num" style="color:var(--accent)">−${money(x.valor)}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="muted small">Nenhuma compra registrada ainda.</div>`;
+    }
+  });
+  load();
+}
+
+/* despesas e ajustes */
+function despesaForm(){
+  openModal({
+    title: "Lançar despesa",
+    body: `<div class="field"><label for="d-desc">Descrição</label><input class="input" id="d-desc" name="descricao" placeholder="Ex.: Botijão de gás, copos descartáveis"></div>
+      <div class="grid3"><div class="field"><label for="d-valor">Valor</label><input class="input num" id="d-valor" name="valor" inputmode="decimal" placeholder="0,00"></div>
+      <div class="field"><label for="d-cat">Categoria</label><input class="input" id="d-cat" name="categoria" list="dcats" placeholder="Ex.: Gás"><datalist id="dcats"><option value="Gás"><option value="Descartáveis"><option value="Embalagens"><option value="Limpeza"><option value="Manutenção"><option value="Outros"></datalist></div>
+      <div class="field"><label for="d-dia">Data</label><input class="input" type="date" id="d-dia" name="dia" value="${today()}"></div></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Lançar</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const desc = String(fd.get("descricao") || "").trim(), v = num(fd.get("valor"));
+      if (!desc || !isFinite(v) || v <= 0){ toast("Informe a descrição e o valor.", true); return; }
+      try { await mut("POST", "/api/despesas", {descricao: desc, valor: r2(v), categoria: String(fd.get("categoria") || "").trim(), dia: fd.get("dia") || today()}); closeModal(); toast("Despesa lançada"); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+}
+function configForm(){
+  openModal({
+    title: "Ajustes",
+    body: `<div class="field"><label for="c-nome">Nome do terreiro</label><input class="input" id="c-nome" name="nome" value="${esc(S.config.nome)}" placeholder="Ex.: Tenda de Umbanda Pai Joaquim"></div>
+      <p class="muted small" style="margin:0">Aparece no topo do sistema e no relatório do Excel. Tudo o que é registrado aqui aparece em todos os aparelhos que usam o site.</p>
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="small">Para tirar o acesso deste aparelho, saia. A senha será pedida de novo.</span><button type="button" class="btn sm danger" data-act="logout">Sair deste aparelho</button></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Salvar</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      try { await mut("PUT", "/api/config", {nome: String(fd.get("nome") || "").trim()}); closeModal(); toast("Ajustes salvos"); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+}
+
+/* ---------- Excel ---------- */
+let xlsxP = null;
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve();
+  if (!xlsxP) xlsxP = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = res; s.onerror = () => { xlsxP = null; rej(new Error("xlsx")); }; document.head.appendChild(s); });
+  return xlsxP;
+}
+const FMT = {money:'"R$" #,##0.00', date:"dd/mm/yyyy", pct:"0.0%", qty:"#,##0.###", int:"0"};
+const xDate = dia => { if (!dia) return ""; const [y,m,d] = dia.split("-").map(Number); return (Date.UTC(y, m-1, d) - Date.UTC(1899, 11, 30)) / 864e5; };
+function mkSheet(headers, rows, fmt = {}, widths = []){
+  const X = window.XLSX;
+  const ws = X.utils.aoa_to_sheet([headers, ...rows]);
+  const range = X.utils.decode_range(ws["!ref"]);
+  for (const [col, f] of Object.entries(fmt)){
+    for (let r = 1; r <= range.e.r; r++){ const cell = ws[X.utils.encode_cell({r, c:Number(col)})]; if (cell && cell.t === "n") cell.z = FMT[f]; }
+  }
+  ws["!cols"] = headers.map((h, i) => ({wch: widths[i] || Math.max(10, String(h).length + 2)}));
+  if (rows.length) ws["!autofilter"] = {ref: X.utils.encode_range(range)};
+  return ws;
+}
+async function exportExcel(){
+  const btn = $('[data-act="export"]'); if (btn){ btn.disabled = true; btn.textContent = "Gerando planilha…"; }
+  try { await loadXLSX(); }
+  catch { toast("Não foi possível carregar o gerador de planilhas. Verifique a internet.", true); if (btn){ btn.disabled = false; btn.textContent = "Exportar para Excel"; } return; }
+  const X = window.XLSX; const B = computeBalance(); const [s, e] = periodRange();
+  const wb = X.utils.book_new();
+  // Resumo
+  const resumo = [
+    ["Cantina", S.config.nome || "Terreiro"], ["Período", `${fmtDay(s)} a ${fmtDay(e)}`], ["Gerado em", new Date().toLocaleString("pt-BR")], ["", ""],
+    ["RESULTADO", ""], ["Número de vendas", B.n], ["Faturamento", r2(B.fat)], ["Custo dos produtos vendidos", r2(B.cmv)], ["Lucro bruto", r2(B.lucro)], ["Margem bruta", B.margem],
+    ["Perdas e ajustes de estoque", r2(B.ajustes)], ["Outras despesas", r2(B.despesas)], ["Resultado líquido", r2(B.resultado)], ["", ""],
+    ["CAIXA", ""], ...PAG_CAIXA.map(k => ["Vendas · " + PAG[k], r2(B.forma[k])]), ...(B.forma.cartao ? [["Vendas · Cartão", r2(B.forma.cartao)]] : []), ["Vendido na conta dos médiuns", r2(B.forma.conta)],
+    ["Contas de médiuns recebidas", r2(B.recebConta)], ["Compras de mercadoria", r2(B.compras)], ["Saldo de caixa", r2(B.saldoCaixa)], ["", ""],
+    ["POSIÇÃO ATUAL", ""], ["Total a receber dos médiuns", r2(B.aberto)], ["Estoque a preço de custo", r2(B.estCusto)], ["Estoque a preço de venda", r2(B.estVenda)],
+  ];
+  const wsR = X.utils.aoa_to_sheet(resumo);
+  resumo.forEach((row, r) => { const c = wsR[X.utils.encode_cell({r, c:1})]; if (c && c.t === "n") c.z = row[0] === "Margem bruta" ? FMT.pct : row[0] === "Número de vendas" ? FMT.int : FMT.money; });
+  wsR["!cols"] = [{wch:34}, {wch:28}];
+  X.utils.book_append_sheet(wb, wsR, "Resumo");
+  // Vendas detalhadas (uma linha por item)
+  const vend = [];
+  for (const v of [...S.vendas].sort((a,b) => (a.data||"").localeCompare(b.data||""))){
+    for (const i of v.itens || []){
+      const sub = Number(i.subtotal)||0, ct = r2((Number(i.custo)||0) * (Number(i.qtd)||0));
+      vend.push([xDate(v.dia), v.hora || "", v.mediumNome || "Avulso", i.nome, i.categoria || "", Number(i.qtd)||0, Number(i.preco)||0, sub, Number(i.custo)||0, ct, r2(sub - ct), PAG_LABEL(v.pagamento), v.cancelada ? "Cancelada" : "OK", v.id]);
+    }
+  }
+  X.utils.book_append_sheet(wb, mkSheet(["Data","Hora","Comprador","Produto","Categoria","Qtd","Preço unit.","Subtotal","Custo unit.","Custo total","Lucro","Pagamento","Situação","Código da venda"], vend,
+    {0:"date",5:"qty",6:"money",7:"money",8:"money",9:"money",10:"money"}, [12,8,26,28,16,7,12,12,12,12,12,12,11,22]), "Vendas");
+  // Por produto
+  const pp = [...B.porProduto.values()].sort((a,b) => b.fat - a.fat).map(p => [p.nome, p.categoria, p.qtd, r2(p.fat), r2(p.custo), r2(p.fat - p.custo), p.fat ? (p.fat - p.custo) / p.fat : 0]);
+  X.utils.book_append_sheet(wb, mkSheet(["Produto","Categoria","Qtd vendida","Faturamento","Custo","Lucro","Margem"], pp, {2:"qty",3:"money",4:"money",5:"money",6:"pct"}, [30,18,12,14,14,14,10]), "Por produto");
+  // Por médium
+  const mm = medMap();
+  const pm2 = [...S.mediuns].sort(byName).map(m => { const x = B.porMedium.get(m.id) || {n:0,total:0,conta:0,pago:0}; return [m.nome, m.telefone || "", x.n, r2(x.total), r2(x.pago), r2(x.conta), r2(Number(m.saldo)||0), m.ativo === false ? "Inativo" : "Ativo"]; });
+  for (const [id, x] of B.porMedium) if (!mm.has(id)) pm2.push([x.nome + " (excluído)", "", x.n, r2(x.total), r2(x.pago), r2(x.conta), 0, "Excluído"]);
+  if (B.avulso.n) pm2.push(["Consulentes / avulso", "", B.avulso.n, r2(B.avulso.total), r2(B.avulso.total), 0, 0, ""]);
+  X.utils.book_append_sheet(wb, mkSheet(["Médium","Telefone","Nº de compras","Total comprado","Pago na hora","Na conta","Saldo em aberto (hoje)","Situação"], pm2, {2:"int",3:"money",4:"money",5:"money",6:"money"}, [28,18,13,15,14,12,20,10]), "Por médium");
+  // Estoque
+  const est = [...S.produtos].sort(byName).map(p => { const c = Number(p.custo)||0, pr = Number(p.preco)||0, q = Number(p.estoque)||0, mn = Number(p.estoqueMinimo)||0;
+    return [p.nome, p.categoria || "", p.unidade || "un", c, pr, pr ? (pr - c) / pr : 0, q, mn, q <= 0 ? "Sem estoque" : (mn && q <= mn ? "Repor" : "OK"), r2(Math.max(0,q) * c), r2(Math.max(0,q) * pr), p.ativo === false ? "Não" : "Sim"]; });
+  X.utils.book_append_sheet(wb, mkSheet(["Produto","Categoria","Unidade","Custo","Preço de venda","Margem","Estoque","Mínimo","Situação","Valor a custo","Valor a venda","À venda"], est,
+    {3:"money",4:"money",5:"pct",6:"qty",7:"qty",9:"money",10:"money"}, [30,18,9,11,14,9,9,9,12,14,14,9]), "Estoque atual");
+  // Movimentações
+  const mv = [...S.movs].sort((a,b) => (a.data||"").localeCompare(b.data||"")).map(m => [xDate(m.dia), MOV[m.tipo] || m.tipo, m.nome || "", Number(m.qtd)||0, Number(m.custoUnit)||0, Number(m.total)||0, m.obs || ""]);
+  X.utils.book_append_sheet(wb, mkSheet(["Data","Tipo","Produto","Quantidade","Custo unit.","Total","Observação"], mv, {0:"date",3:"qty",4:"money",5:"money"}, [12,22,28,11,12,12,30]), "Movimentações");
+  // Pagamentos
+  const pg = [...S.pagamentos].sort((a,b) => (a.data||"").localeCompare(b.data||"")).map(p => [xDate(p.dia), p.mediumNome || "", Number(p.valor)||0, PAG_LABEL(p.forma), p.obs || ""]);
+  X.utils.book_append_sheet(wb, mkSheet(["Data","Médium","Valor","Forma","Observação"], pg, {0:"date",2:"money"}, [12,28,12,12,30]), "Contas recebidas");
+  // Despesas
+  const dp = [...S.despesas].sort((a,b) => (a.dia||"").localeCompare(b.dia||"")).map(d => [xDate(d.dia), d.descricao || "", d.categoria || "", Number(d.valor)||0]);
+  X.utils.book_append_sheet(wb, mkSheet(["Data","Descrição","Categoria","Valor"], dp, {0:"date",3:"money"}, [12,34,16,12]), "Despesas");
+
+  const out = X.write(wb, {bookType:"xlsx", type:"array"});
+  const filename = `cantina_${s}_a_${e}.xlsx`;
+  try {
+    const blob = new Blob([out], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast("Planilha baixada");
+  } catch { toast("Não foi possível gerar o arquivo.", true); }
+  finally { if (btn){ btn.disabled = false; btn.textContent = "Exportar para Excel"; } }
+}
+
+/* ---------- ações ---------- */
+const ACT = {
+  "add": d => { const c = S.cart.find(x => x.id === d.id); if (c) c.qtd++; else S.cart.push({id:d.id, qtd:1}); render(); },
+  "inc": d => { const c = S.cart.find(x => x.id === d.id); if (c){ c.qtd++; render(); } },
+  "dec": d => { const c = S.cart.find(x => x.id === d.id); if (!c) return; c.qtd--; if (c.qtd <= 0) S.cart = S.cart.filter(x => x !== c); render(); },
+  "cart-clear": () => { S.cart = []; render(); },
+  "pay": d => { S.cartPag = d.k; render(); if (d.k === "dinheiro") setTimeout(() => $("#cart-recebido")?.focus(), 0); },
+  "checkout": () => checkout(),
+  "goto-cart": () => $("#cart")?.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"}),
+  "cat": d => { S.cat = d.k; render(); },
+  "period": d => { S.period = {...S.period, key:d.k}; if (d.k === "custom" && !S.period.start){ const [a, b] = [isoDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), today()]; S.period.start = a; S.period.end = b; } prefSet("period", S.period); render(); refresh(); },
+  "venda-cancel": d => cancelVenda(d.id),
+  "prod-new": () => produtoForm(null),
+  "prod-edit": (d, el, e) => { if (e.target.closest("button")) return; produtoForm(S.produtos.find(p => p.id === d.id)); },
+  "prod-import": () => produtoImport(),
+  "prod-setprice": d => { produtoForm(S.produtos.find(p => p.id === d.id)); setTimeout(() => $("#f-custo")?.focus(), 0); },
+  "prod-del": d => { const p = S.produtos.find(x => x.id === d.id); if (!p) return; confirmBox({title:"Excluir produto?", text:`“${p.nome}” sai da lista de produtos. As vendas já feitas continuam no histórico e nos relatórios. Se só quer tirar da tela de vendas, desmarque “Disponível para venda”.`, yes:"Excluir produto", danger:true,
+    onYes: async () => { if (!guardWrite()) return; try { await mut("DELETE", "/api/produtos/" + p.id); closeModal(); toast("Produto excluído"); } catch (e){ toast(dbErr(e), true); } }}); },
+  "entrada": d => entradaForm(d.id || S.produtos.slice().sort(byName)[0]?.id),
+  "ajuste": d => ajusteForm(d.id),
+  "med-new": () => mediumForm(null),
+  "med-import": () => mediumImport(),
+  "med-open": d => mediumOpen(d.id),
+  "med-edit": d => mediumForm(S.mediuns.find(m => m.id === d.id)),
+  "med-del": d => { const m = S.mediuns.find(x => x.id === d.id); if (!m) return; const sd = Number(m.saldo)||0;
+    confirmBox({title:"Excluir médium?", text:`${m.nome} sai da lista.${sd > 0.004 ? ` Atenção: há ${money(sd)} em aberto na conta.` : ""} As compras já feitas continuam no histórico. Para só esconder da lista de compradores, use “Editar dados” e desmarque “Ativo”.`, yes:"Excluir médium", danger:true,
+      onYes: async () => { if (!guardWrite()) return; try { await mut("DELETE", "/api/mediuns/" + m.id); closeModal(); toast("Médium excluído"); } catch (e){ toast(dbErr(e), true); } }}); },
+  "pg-quitar": d => { const i = $("#pg-valor"); if (i){ i.value = String(d.v).replace(".", ","); i.focus(); } },
+  "desp-new": () => despesaForm(),
+  "desp-del": d => { const x = S.despesas.find(y => y.id === d.id); if (!x) return; confirmBox({title:"Excluir despesa?", text:`${x.descricao} · ${money(x.valor)} em ${fmtDay(x.dia)}.`, yes:"Excluir", danger:true,
+    onYes: async () => { if (!guardWrite()) return; try { await mut("DELETE", "/api/despesas/" + x.id); toast("Despesa excluída"); } catch (e){ toast(dbErr(e), true); } }}); },
+  "export": () => exportExcel(),
+  "config": () => configForm(),
+  "logout": () => { SENHA = ""; prefSet("senha", ""); closeModal(); location.reload(); },
+  "modal-close": () => closeModal(),
+  "modal-bg": (d, el, e) => { if (e.target === el) closeModal(); },
+};
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]");
+  if (t){ S.tab = t.dataset.tab; prefSet("tab", S.tab); closeModal(); render(); window.scrollTo({top:0}); return; }
+  const a = e.target.closest("[data-act]"); if (!a) return;
+  const f = ACT[a.dataset.act]; if (f) f(a.dataset, a, e);
+});
+document.addEventListener("input", e => {
+  const id = e.target.id;
+  if (id === "pdv-search"){ S.search = e.target.value; render(); }
+  else if (id === "vendas-busca"){ S.vendasBusca = e.target.value; render(); }
+  else if (id === "m-busca"){ S.mBusca = e.target.value; render(); }
+  else if (id === "e-busca"){ S.eBusca = e.target.value; render(); }
+  else if (id === "cart-recebido") updateTroco();
+});
+document.addEventListener("change", e => {
+  const id = e.target.id;
+  if (id === "cart-medium"){ S.cartMedium = e.target.value; if (!S.cartMedium && S.cartPag === "conta") S.cartPag = "dinheiro"; render(); }
+  else if (id === "p-start" || id === "p-end"){ S.period = {...S.period, key:"custom", start:$("#p-start").value, end:$("#p-end").value}; prefSet("period", S.period); render(); refresh(); }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modal-root").innerHTML) closeModal(); });
+
+/* ---------- início ---------- */
+render();
+refresh();
+setInterval(() => { if (!document.hidden) poll(); }, 4000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+window.addEventListener("online", () => poll());
+</script>
+</body>
+</html>
