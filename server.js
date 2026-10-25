@@ -154,6 +154,11 @@ async function prepararBanco() {
   // importação dos dados do sistema antigo (uma vez só)
   await limpezaUnica("importacao-2026-10-25", c => require("./importacao-2026-10-25.js")(c, { id, r2, r3, dia: agoraBR().dia, acertarSaldo, log: m => console.log(m) }));
   await limpezaUnica("mensalidades-2026-10", c => require("./mensalidades-2026-10.js")(c, { id, log: m => console.log(m) }));
+  // pedido do responsável em 25/10/2026: Cleverson também paga mensalidade
+  await limpezaUnica("mensalidade-cleverson", async c => {
+    const r = await c.query("UPDATE mediuns SET mensalidade = true WHERE lower(nome) = 'cleverson'");
+    console.log(`Mensalidade: Cleverson incluído (${r.rowCount})`);
+  });
   const seeded = await pool.query("SELECT 1 FROM config WHERE chave = 'seeded'");
   if (seeded.rowCount) return;
   await tx(async c => {
