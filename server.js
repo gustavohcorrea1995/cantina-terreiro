@@ -213,12 +213,20 @@ app.post("/api/vendas", h(async (req, res) => {
     const custoTotal = r2(itens.reduce((a, i) => a + i.custo * i.qtd, 0));
     let recebido = null, troco = null;
     if (b.pagamento === "dinheiro" && numOk(b.recebido) && b.recebido > 0) { recebido = r2(b.recebido); troco = r2(recebido - total); }
-    const { dia, hora } = agoraBR();
+    const agora = agoraBR();
+    let dia = agora.dia, hora = agora.hora, data = new Date().toISOString();
+    if (b.dia && b.dia !== agora.dia){
+      // venda retroativa: data escolhida pelo usuário, nunca no futuro
+      if (!isDia(b.dia) || b.dia > agora.dia || b.dia < "2020-01-01") throw new Erro("Data da venda inválida.");
+      dia = b.dia;
+      hora = typeof b.hora === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(b.hora) ? b.hora : "12:00";
+      data = new Date(`${dia}T${hora}:00-03:00`).toISOString();
+    }
     const vid = id();
     const ins = await c.query(
-      `INSERT INTO vendas (id, dia, hora, medium_id, medium_nome, itens, total, custo_total, pagamento, recebido, troco)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [vid, dia, hora, med?.id || null, med?.nome || "", JSON.stringify(itens), total, custoTotal, b.pagamento, recebido, troco]);
+      `INSERT INTO vendas (id, data, dia, hora, medium_id, medium_nome, itens, total, custo_total, pagamento, recebido, troco)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [vid, data, dia, hora, med?.id || null, med?.nome || "", JSON.stringify(itens), total, custoTotal, b.pagamento, recebido, troco]);
     for (const [pid, qtd] of qtdPor) await c.query("UPDATE produtos SET estoque = estoque - $2 WHERE id = $1", [pid, qtd]);
     if (b.pagamento === "conta") await c.query("UPDATE mediuns SET saldo = saldo + $2 WHERE id = $1", [med.id, total]);
     return camel(ins.rows[0]);
