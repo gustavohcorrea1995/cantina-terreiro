@@ -227,6 +227,7 @@ img{max-width:100%}
     <button class="tab" data-tab="mediuns" type="button">Médiuns</button>
     <button class="tab" data-tab="estoque" type="button">Produtos e estoque</button>
     <button class="tab" data-tab="balanco" type="button">Balanço</button>
+    <button class="tab" data-tab="mensalidades" type="button">Mensalidades</button>
   </nav>
   <div id="notice"></div>
   <main id="view"></main>
@@ -287,6 +288,7 @@ const S = {
   period: prefGet("period", {key:"mes", start:"", end:""}),
   periodTruncated: false,
   cart: [], cartMedium: "", cartPag: "dinheiro", retro: false, retroDia: "", retroHora: "",
+  mRef: isoDay(new Date()).slice(0, 7), mensalidades: [], mFiltro: "todos", menBusca: "",
   search: "", cat: "Todas", vendasBusca: "", mBusca: "", eBusca: "",
   canWrite: true, noDb: false, connected: false,
 };
@@ -353,10 +355,11 @@ async function refresh(){
   carregando = true;
   try {
     const [s, e] = periodRange();
-    const j = await api("GET", `/api/estado?inicio=${s}&fim=${e}`);
+    const j = await api("GET", `/api/estado?inicio=${s}&fim=${e}&mref=${S.mRef}`);
     versao = j.versao; S.serverHoje = j.hoje;
     S.produtos = j.produtos; S.mediuns = j.mediuns; S.config = j.config || {};
     S.vendas = j.vendas; S.vendasHoje = j.vendasHoje; S.movs = j.movs; S.despesas = j.despesas; S.pagamentos = j.pagamentos;
+    if (j.mref === S.mRef) S.mensalidades = j.mensalidades || [];
     S.periodTruncated = j.vendas.length >= 20000;
     S.loaded.produtos = S.loaded.mediuns = true;
     setStatus("ok"); schedule();
@@ -410,7 +413,7 @@ function render(){
   const sel = focusId && act.setSelectionRange && act.type !== "date" && act.type !== "number" ? [act.selectionStart, act.selectionEnd] : null;
   const vals = {};
   view.querySelectorAll("input[id],select[id],textarea[id]").forEach(el => { if (el.type !== "checkbox") vals[el.id] = el.value; });
-  const fn = {vender: viewVender, vendas: viewVendas, mediuns: viewMediuns, estoque: viewEstoque, balanco: viewBalanco}[S.tab] || viewVender;
+  const fn = {vender: viewVender, vendas: viewVendas, mediuns: viewMediuns, estoque: viewEstoque, balanco: viewBalanco, mensalidades: viewMensalidades}[S.tab] || viewVender;
   view.innerHTML = fn();
   for (const [id, v] of Object.entries(vals)){ const el = document.getElementById(id); if (el && el.dataset.keep !== "no" && view.contains(el)) el.value = v; }
   if (focusId){ const el = document.getElementById(focusId); if (el){ el.focus(); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch {} } }
@@ -754,6 +757,111 @@ function viewBalanco(){
   </div>`;
 }
 
+/* ----- Mensalidades ----- */
+const valorMens = () => { const v = Number(S.config.valorMensalidade); return isFinite(v) && v > 0 ? v : 100; };
+const refLabel = ref => { const [y, m] = ref.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {month:"long", year:"numeric"}); };
+const FORMAS_MENS = {pix:"Pix", dinheiro:"Dinheiro", credito:"Crédito", debito:"Débito"};
+function mensLinhas(){
+  const reg = new Map(S.mensalidades.map(x => [x.mediumId, x]));
+  const membros = S.mediuns.filter(m => m.mensalidade !== false && m.ativo !== false);
+  const ids = new Set(membros.map(m => m.id));
+  const linhas = membros.map(m => ({m, r: reg.get(m.id) || null}));
+  // registros de quem saiu da lista continuam aparecendo no mês em que pagaram
+  for (const r of S.mensalidades) if (!ids.has(r.mediumId)) linhas.push({m: S.mediuns.find(x => x.id === r.mediumId) || {id: r.mediumId, nome: r.mediumNome}, r});
+  return linhas.sort((a, b) => byName(a.m, b.m));
+}
+function viewMensalidades(){
+  const linhas = mensLinhas();
+  const pagos = linhas.filter(l => l.r?.status === "pago"), isentos = linhas.filter(l => l.r?.status === "isento"), pend = linhas.filter(l => !l.r);
+  const totPago = pagos.reduce((a, l) => a + (Number(l.r.valor) || 0), 0);
+  const q = norm(S.menBusca);
+  const vis = linhas.filter(l => (S.mFiltro === "todos" || (S.mFiltro === "pagos" && l.r?.status === "pago") || (S.mFiltro === "pendentes" && !l.r) || (S.mFiltro === "isentos" && l.r?.status === "isento"))
+    && (!q || norm(l.m.nome).includes(q) || norm(l.m.obs).includes(q)));
+  const chip = (k, t) => `<button type="button" class="chip" data-act="mfiltro" data-k="${k}" aria-pressed="${S.mFiltro === k}">${t}</button>`;
+  return `<div class="section-head"><div><h2>Mensalidades</h2><div class="muted small">Valor da mensalidade: ${money(valorMens())} · muda em Ajustes</div></div>
+    <button class="btn" data-act="men-export" type="button">Exportar ano para Excel</button></div>
+  <div class="row" style="margin-bottom:14px;gap:8px">
+    <button class="btn sm" data-act="mref" data-k="-1" type="button" aria-label="Mês anterior">‹</button>
+    <b style="font-family:var(--f-display);font-size:1.15rem;min-width:170px;text-align:center;text-transform:capitalize">${esc(refLabel(S.mRef))}</b>
+    <button class="btn sm" data-act="mref" data-k="1" type="button" aria-label="Próximo mês">›</button>
+  </div>
+  <div class="kpis" style="margin-bottom:16px">
+    <div class="kpi hero"><div class="k">Pagos</div><div class="v num">${money(totPago)}</div><div class="d">${pagos.length} médium(ns)</div></div>
+    <div class="kpi ${pend.length ? "neg" : ""}"><div class="k">Pendentes</div><div class="v num">${pend.length}</div><div class="d">faltam ${money(pend.length * valorMens())}</div></div>
+    <div class="kpi"><div class="k">Isentos</div><div class="v num">${isentos.length}</div><div class="d">médium(ns)</div></div>
+  </div>
+  <div class="row" style="margin-bottom:12px;justify-content:space-between">
+    <div class="chips">${chip("todos", `Todos · ${linhas.length}`)}${chip("pendentes", `Pendentes · ${pend.length}`)}${chip("pagos", `Pagos · ${pagos.length}`)}${chip("isentos", `Isentos · ${isentos.length}`)}</div>
+    <input class="input" id="men-busca" type="search" placeholder="Buscar médium…" value="${esc(S.menBusca)}" style="max-width:300px">
+  </div>
+  ${!linhas.length ? `<div class="panel empty"><strong>Ninguém na lista de mensalidades</strong><span>Na aba Médiuns, abra um médium, toque em “Editar dados” e marque “Paga mensalidade”.</span></div>` :
+  `<div class="tablewrap"><table><thead><tr><th>Médium</th><th>Situação</th><th class="r">Valor pago</th><th>Data</th><th>Forma</th><th></th></tr></thead><tbody>
+  ${vis.map(({m, r}) => `<tr>
+    <td><b>${esc(m.nome)}</b>${m.mensalidade === false ? ` <span class="small muted">(fora da lista)</span>` : ""}</td>
+    <td>${r?.status === "pago" ? `<span class="pill ok">Pago</span>` : r?.status === "isento" ? `<span class="pill">Isento</span>` : `<span class="pill warn">Pendente</span>`}</td>
+    <td class="r num">${r?.status === "pago" ? money(r.valor) : "—"}</td>
+    <td class="num">${r?.status === "pago" ? fmtDay(r.dia) : "—"}</td>
+    <td>${r?.status === "pago" ? esc(FORMAS_MENS[r.forma] || r.forma) : "—"}</td>
+    <td class="r" style="white-space:nowrap">${r ? `<button class="btn sm ghost" data-act="men-desfazer" data-id="${r.id}" type="button">Desfazer</button>`
+      : `<button class="btn sm primary" data-act="men-pagar" data-id="${m.id}" type="button">Registrar pagamento</button> <button class="btn sm ghost" data-act="men-isentar" data-id="${m.id}" type="button">Isentar</button>`}</td>
+  </tr>`).join("") || `<tr><td colspan="6" class="muted">Ninguém nesta situação.</td></tr>`}
+  </tbody></table></div>`}`;
+}
+function mensalidadeForm(mid){
+  const m = S.mediuns.find(x => x.id === mid); if (!m) return;
+  const [y, mo] = S.mRef.split("-").map(Number);
+  const hoje = today();
+  const sugestao = hoje.slice(0, 7) === S.mRef ? hoje : isoDay(new Date(y, mo - 1, Math.min(10, new Date(y, mo, 0).getDate())));
+  openModal({
+    title: `Mensalidade · ${m.nome}`,
+    body: `<div class="muted">Referente a <b style="color:var(--ink);text-transform:capitalize">${esc(refLabel(S.mRef))}</b></div>
+      <div class="grid3"><div class="field"><label for="mp-valor">Valor pago</label><input class="input num" id="mp-valor" name="valor" inputmode="decimal" value="${String(valorMens()).replace(".", ",")}"></div>
+      <div class="field"><label for="mp-dia">Data do pagamento</label><input class="input" type="date" id="mp-dia" name="dia" value="${sugestao}" max="${hoje}"></div>
+      <div class="field"><label for="mp-forma">Forma</label><select class="input" id="mp-forma" name="forma">${Object.entries(FORMAS_MENS).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div></div>
+      <div class="field"><label for="mp-obs">Observação</label><input class="input" id="mp-obs" name="obs" placeholder="Opcional"></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Registrar pagamento</button>`,
+    onSubmit: async fd => {
+      const v = num(fd.get("valor"));
+      if (!isFinite(v) || v <= 0){ toast("Informe o valor pago.", true); return; }
+      try { await mut("POST", "/api/mensalidades", {mediumId: mid, referencia: S.mRef, status: "pago", valor: r2(v), dia: fd.get("dia") || today(), forma: fd.get("forma"), obs: String(fd.get("obs") || "").trim()}); closeModal(); toast(`Mensalidade de ${m.nome} registrada`); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+}
+async function exportMensalidades(){
+  const ano = S.mRef.slice(0, 4);
+  const btn = $('[data-act="men-export"]'); if (btn){ btn.disabled = true; btn.textContent = "Gerando planilha…"; }
+  try {
+    await loadXLSX();
+    const j = await api("GET", "/api/mensalidades/ano?ano=" + ano);
+    const X = window.XLSX, wb = X.utils.book_new();
+    const meses = Array.from({length: 12}, (_, i) => `${ano}-${pad(i + 1)}`);
+    const nomesMes = meses.map(r => new Date(Number(ano), Number(r.slice(5)) - 1, 1).toLocaleDateString("pt-BR", {month: "short"}).replace(".", ""));
+    const porMed = new Map();
+    for (const x of j.mensalidades){ if (!porMed.has(x.mediumId)) porMed.set(x.mediumId, {nome: x.mediumNome, r: {}}); porMed.get(x.mediumId).r[x.referencia] = x; }
+    for (const m of S.mediuns) if (m.mensalidade !== false && m.ativo !== false && !porMed.has(m.id)) porMed.set(m.id, {nome: m.nome, r: {}});
+    for (const [id, v] of porMed){ const m = S.mediuns.find(x => x.id === id); if (m) v.nome = m.nome; }
+    const lista = [...porMed.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    // aba do ano: um mês por coluna, com o valor pago (ou Isento / Pendente)
+    const atual = today().slice(0, 7);
+    const inicio = j.mensalidades.reduce((a, x) => x.referencia < a ? x.referencia : a, atual);
+    const linhasAno = lista.map(v => [v.nome, ...meses.map(r => { const x = v.r[r]; return x ? (x.status === "pago" ? Number(x.valor) : "Isento") : (r >= inicio && r <= atual ? "Pendente" : ""); }), meses.reduce((a, r) => a + (v.r[r]?.status === "pago" ? Number(v.r[r].valor) : 0), 0)]);
+    const totais = ["TOTAL", ...meses.map(r => lista.reduce((a, v) => a + (v.r[r]?.status === "pago" ? Number(v.r[r].valor) : 0), 0)), 0];
+    totais[13] = totais.slice(1, 13).reduce((a, b) => a + b, 0);
+    const fmtAno = Object.fromEntries(Array.from({length: 13}, (_, i) => [i + 1, "money"]));
+    X.utils.book_append_sheet(wb, mkSheet(["Médium", ...nomesMes, "Total no ano"], [...linhasAno, totais], fmtAno, [34, ...meses.map(() => 10), 13]), `Mensalidades ${ano}`);
+    // aba do mês aberto na tela
+    const linhasMes = mensLinhas().map(({m, r}) => [m.nome, r?.status === "pago" ? "Pago" : r?.status === "isento" ? "Isento" : "Pendente", r?.status === "pago" ? Number(r.valor) : "", r?.status === "pago" ? xDate(r.dia) : "", r?.status === "pago" ? (FORMAS_MENS[r.forma] || r.forma) : "", r?.obs || ""]);
+    const nomeMes = refLabel(S.mRef);
+    X.utils.book_append_sheet(wb, mkSheet(["Médium", "Situação", "Valor pago", "Data do pagamento", "Forma", "Observação"], linhasMes, {2: "money", 3: "date"}, [34, 11, 12, 17, 10, 28]), nomeMes.slice(0, 31).replace(/[\\/?*\[\]:]/g, ""));
+    const out = X.write(wb, {bookType: "xlsx", type: "array"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})); a.download = `mensalidades_${ano}.xlsx`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast("Planilha baixada");
+  } catch (e){ toast(dbErr(e) || "Não foi possível gerar a planilha.", true); }
+  finally { if (btn){ btn.disabled = false; btn.textContent = "Exportar ano para Excel"; } }
+}
+
 /* ---------- modais ---------- */
 let modalLive = null;
 function openModal({title, body, foot = "", wide = false, onSubmit, live}){
@@ -908,12 +1016,13 @@ function mediumForm(m){
     body: `<div class="field"><label for="m-nome">Nome</label><input class="input" id="m-nome" name="nome" required value="${esc(m.nome)}"></div>
       <div class="field"><label for="m-tel">Telefone / WhatsApp</label><input class="input" id="m-tel" name="telefone" inputmode="tel" value="${esc(m.telefone)}" placeholder="(11) 90000-0000"></div>
       <div class="field"><label for="m-obs">Observação</label><input class="input" id="m-obs" name="obs" value="${esc(m.obs)}" placeholder="Ex.: corrente de quarta, cambone"></div>
-      <label class="row small" style="gap:8px"><input type="checkbox" name="ativo" ${m.ativo !== false ? "checked" : ""} style="width:20px;height:20px"> Ativo (aparece na lista de compradores)</label>`,
+      <label class="row small" style="gap:8px"><input type="checkbox" name="ativo" ${m.ativo !== false ? "checked" : ""} style="width:20px;height:20px"> Ativo (aparece na lista de compradores)</label>
+      <label class="row small" style="gap:8px"><input type="checkbox" name="mensalidade" ${m.mensalidade !== false ? "checked" : ""} style="width:20px;height:20px"> Paga mensalidade (aparece na aba Mensalidades)</label>`,
     foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">${isNew ? "Cadastrar" : "Salvar"}</button>`,
     onSubmit: async fd => {
       if (!guardWrite()) return;
       const nome = String(fd.get("nome") || "").trim(); if (!nome){ toast("Informe o nome.", true); return; }
-      const data = {nome, telefone:String(fd.get("telefone") || "").trim(), obs:String(fd.get("obs") || "").trim(), ativo: fd.get("ativo") === "on"};
+      const data = {nome, telefone:String(fd.get("telefone") || "").trim(), obs:String(fd.get("obs") || "").trim(), ativo: fd.get("ativo") === "on", mensalidade: fd.get("mensalidade") === "on"};
       try {
         if (isNew) await mut("POST", "/api/mediuns", data);
         else await mut("PUT", "/api/mediuns/" + m.id, data);
@@ -1028,12 +1137,14 @@ function configForm(){
   openModal({
     title: "Ajustes",
     body: `<div class="field"><label for="c-nome">Nome do terreiro</label><input class="input" id="c-nome" name="nome" value="${esc(S.config.nome)}" placeholder="Ex.: Tenda de Umbanda Pai Joaquim"></div>
+      <div class="field"><label for="c-mens">Valor da mensalidade</label><input class="input num" id="c-mens" name="valorMensalidade" inputmode="decimal" value="${String(valorMens()).replace(".", ",")}" style="max-width:180px"></div>
       <p class="muted small" style="margin:0">Aparece no topo do sistema e no relatório do Excel. Tudo o que é registrado aqui aparece em todos os aparelhos que usam o site.</p>
       <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="small">Para tirar o acesso deste aparelho, saia. A senha será pedida de novo.</span><button type="button" class="btn sm danger" data-act="logout">Sair deste aparelho</button></div>`,
     foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Salvar</button>`,
     onSubmit: async fd => {
       if (!guardWrite()) return;
-      try { await mut("PUT", "/api/config", {nome: String(fd.get("nome") || "").trim()}); closeModal(); toast("Ajustes salvos"); }
+      const vm = num(fd.get("valorMensalidade"));
+      try { await mut("PUT", "/api/config", {nome: String(fd.get("nome") || "").trim(), valorMensalidade: isFinite(vm) ? r2(vm) : 100}); closeModal(); toast("Ajustes salvos"); }
       catch (e){ toast(dbErr(e), true); }
     }
   });
@@ -1162,6 +1273,14 @@ const ACT = {
   "desp-del": d => { const x = S.despesas.find(y => y.id === d.id); if (!x) return; confirmBox({title:"Excluir despesa?", text:`${x.descricao} · ${money(x.valor)} em ${fmtDay(x.dia)}.`, yes:"Excluir", danger:true,
     onYes: async () => { if (!guardWrite()) return; try { await mut("DELETE", "/api/despesas/" + x.id); toast("Despesa excluída"); } catch (e){ toast(dbErr(e), true); } }}); },
   "export": () => exportExcel(),
+  "mref": d => { const [y, m] = S.mRef.split("-").map(Number); const dt = new Date(y, m - 1 + Number(d.k), 1); S.mRef = isoDay(dt).slice(0, 7); S.mensalidades = []; render(); refresh(); },
+  "mfiltro": d => { S.mFiltro = d.k; render(); },
+  "men-pagar": d => mensalidadeForm(d.id),
+  "men-isentar": async d => { try { await mut("POST", "/api/mensalidades", {mediumId: d.id, referencia: S.mRef, status: "isento"}); toast("Marcado como isento"); } catch (e){ toast(dbErr(e), true); } },
+  "men-desfazer": d => { const x = S.mensalidades.find(y => y.id === d.id); if (!x) return;
+    confirmBox({title: "Voltar para pendente?", text: `${x.mediumNome} volta a ficar pendente em ${refLabel(S.mRef)}${x.status === "pago" ? `. O pagamento de ${money(x.valor)} será removido` : ""}.`, yes: "Voltar para pendente", danger: true,
+      onYes: async () => { try { await mut("DELETE", "/api/mensalidades/" + x.id); toast("Mensalidade voltou para pendente"); } catch (e){ toast(dbErr(e), true); } }}); },
+  "men-export": () => exportMensalidades(),
   "config": () => configForm(),
   "logout": () => { SENHA = ""; prefSet("senha", ""); closeModal(); location.reload(); },
   "modal-close": () => closeModal(),
@@ -1178,6 +1297,7 @@ document.addEventListener("input", e => {
   if (id === "pdv-search"){ S.search = e.target.value; render(); }
   else if (id === "vendas-busca"){ S.vendasBusca = e.target.value; render(); }
   else if (id === "m-busca"){ S.mBusca = e.target.value; render(); }
+  else if (id === "men-busca"){ S.menBusca = e.target.value; render(); }
   else if (id === "e-busca"){ S.eBusca = e.target.value; render(); }
   else if (id === "cart-recebido") updateTroco();
 });

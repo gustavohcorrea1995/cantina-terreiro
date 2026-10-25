@@ -32,6 +32,7 @@ const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
 const r3 = v => Math.round((Number(v) || 0) * 1000) / 1000;
 const txt = (v, max = 200) => String(v ?? "").trim().slice(0, max);
 const isDia = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const isRef = s => typeof s === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
 const numOk = v => typeof v === "number" && isFinite(v);
 function agoraBR() {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).map(x => [x.type, x.value]));
@@ -95,6 +96,12 @@ CREATE TABLE IF NOT EXISTS acertos (
   id text PRIMARY KEY, data timestamptz NOT NULL DEFAULT now(), dia date NOT NULL, medium_id text, medium_nome text NOT NULL DEFAULT '',
   valor numeric(12,2) NOT NULL, saldo_novo numeric(12,2) NOT NULL, descricao text NOT NULL DEFAULT '');
 CREATE INDEX IF NOT EXISTS acertos_medium ON acertos (medium_id);
+ALTER TABLE mediuns ADD COLUMN IF NOT EXISTS mensalidade boolean NOT NULL DEFAULT true;
+CREATE TABLE IF NOT EXISTS mensalidades (
+  id text PRIMARY KEY, medium_id text NOT NULL, medium_nome text NOT NULL DEFAULT '', referencia text NOT NULL,
+  status text NOT NULL, valor numeric(12,2) NOT NULL DEFAULT 0, dia date, forma text NOT NULL DEFAULT '', obs text NOT NULL DEFAULT '',
+  data timestamptz NOT NULL DEFAULT now(), UNIQUE (medium_id, referencia));
+CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
 `;
 const SEED_MEDIUNS = ["Pai Oscar", "Mãe Cintia", "Mãe Marcela", "Mãe Manuela", "Gustavo", "Suelin Schio", "Deivid", "Miguel", "Gabi", "Izabelle", "Chuim", "Claudio", "Celmo", "Ket", "Elisa", "Erika", "Lucas", "Alessandra", "Marcia Mello", "Sandra", "Cris", "Juca", "Thaiz", "Gi Wollertt", "Karla", "Suellin", "Kaue", "Camille", "Val", "Carol", "Francielle", "Cleverson"];
 const SEED_PRODUTOS = [
@@ -146,6 +153,7 @@ async function prepararBanco() {
   });
   // importação dos dados do sistema antigo (uma vez só)
   await limpezaUnica("importacao-2026-10-25", c => require("./importacao-2026-10-25.js")(c, { id, r2, r3, dia: agoraBR().dia, acertarSaldo, log: m => console.log(m) }));
+  await limpezaUnica("mensalidades-2026-10", c => require("./mensalidades-2026-10.js")(c, { id, log: m => console.log(m) }));
   const seeded = await pool.query("SELECT 1 FROM config WHERE chave = 'seeded'");
   if (seeded.rowCount) return;
   await tx(async c => {
@@ -200,7 +208,8 @@ app.get("/api/estado", h(async (req, res) => {
   let inicio = isDia(req.query.inicio) ? req.query.inicio : hoje;
   let fim = isDia(req.query.fim) ? req.query.fim : hoje;
   if (inicio > fim) [inicio, fim] = [fim, inicio];
-  const [ver, prods, meds, cfg, vendas, vendasHoje, movs, desp, pags] = await Promise.all([
+  const mref = isRef(req.query.mref) ? req.query.mref : hoje.slice(0, 7);
+  const [ver, prods, meds, cfg, vendas, vendasHoje, movs, desp, pags, mens] = await Promise.all([
     pool.query("SELECT versao FROM meta WHERE id = 1"),
     pool.query("SELECT * FROM produtos ORDER BY nome"),
     pool.query("SELECT * FROM mediuns ORDER BY nome"),
@@ -210,6 +219,7 @@ app.get("/api/estado", h(async (req, res) => {
     pool.query("SELECT * FROM movimentos WHERE dia BETWEEN $1 AND $2 ORDER BY data DESC LIMIT 5000", [inicio, fim]),
     pool.query("SELECT * FROM despesas WHERE dia BETWEEN $1 AND $2 ORDER BY dia DESC, data DESC LIMIT 5000", [inicio, fim]),
     pool.query("SELECT * FROM pagamentos WHERE dia BETWEEN $1 AND $2 ORDER BY data DESC LIMIT 5000", [inicio, fim]),
+    pool.query("SELECT * FROM mensalidades WHERE referencia = $1", [mref]),
   ]);
   versaoMem = Number(ver.rows[0]?.versao || 0);
   res.set("Cache-Control", "no-store");
@@ -217,6 +227,7 @@ app.get("/api/estado", h(async (req, res) => {
     versao: versaoMem, hoje, inicio, fim,
     produtos: rows(prods), mediuns: rows(meds), config: cfg.rows[0]?.valor || {},
     vendas: rows(vendas), vendasHoje: rows(vendasHoje), movs: rows(movs), despesas: rows(desp), pagamentos: rows(pags),
+    mref, mensalidades: rows(mens),
   });
 }));
 app.get("/api/mediuns/:id/extrato", h(async (req, res) => {
@@ -385,11 +396,11 @@ app.post("/api/ajustes", h(async (req, res) => {
 function dadosMedium(b) {
   const nome = txt(b.nome, 120);
   if (!nome) throw new Erro("Informe o nome.");
-  return { nome, telefone: txt(b.telefone, 40), obs: txt(b.obs, 200), ativo: b.ativo !== false };
+  return { nome, telefone: txt(b.telefone, 40), obs: txt(b.obs, 200), ativo: b.ativo !== false, mensalidade: b.mensalidade !== false };
 }
 app.post("/api/mediuns", h(async (req, res) => {
   const d = dadosMedium(req.body || {}); const mid = id();
-  await tx(c => c.query("INSERT INTO mediuns (id, nome, telefone, obs, ativo) VALUES ($1,$2,$3,$4,$5)", [mid, d.nome, d.telefone, d.obs, d.ativo]));
+  await tx(c => c.query("INSERT INTO mediuns (id, nome, telefone, obs, ativo, mensalidade) VALUES ($1,$2,$3,$4,$5,$6)", [mid, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade]));
   res.json({ id: mid });
 }));
 app.post("/api/mediuns/importar", h(async (req, res) => {
@@ -408,7 +419,11 @@ app.post("/api/mediuns/importar", h(async (req, res) => {
 }));
 app.put("/api/mediuns/:id", h(async (req, res) => {
   const d = dadosMedium(req.body || {});
-  const r = await tx(c => c.query("UPDATE mediuns SET nome=$2, telefone=$3, obs=$4, ativo=$5 WHERE id=$1", [req.params.id, d.nome, d.telefone, d.obs, d.ativo]));
+  const r = await tx(async c => {
+    const r = await c.query("UPDATE mediuns SET nome=$2, telefone=$3, obs=$4, ativo=$5, mensalidade=$6 WHERE id=$1", [req.params.id, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade]);
+    await c.query("UPDATE mensalidades SET medium_nome = $2 WHERE medium_id = $1", [req.params.id, d.nome]);
+    return r;
+  });
   if (!r.rowCount) throw new Erro("Médium não encontrado.", 404);
   res.json({ ok: true });
 }));
@@ -441,6 +456,38 @@ app.post("/api/pagamentos", h(async (req, res) => {
   res.json({ ok: true });
 }));
 
+/* mensalidades */
+const FORMAS_MENS = ["pix", "dinheiro", "credito", "debito"];
+app.post("/api/mensalidades", h(async (req, res) => {
+  const b = req.body || {};
+  if (!isRef(b.referencia)) throw new Erro("Mês de referência inválido.");
+  if (!["pago", "isento"].includes(b.status)) throw new Erro("Situação inválida.");
+  if (b.status === "pago") {
+    if (!numOk(b.valor) || b.valor <= 0) throw new Erro("Informe o valor pago.");
+    if (!FORMAS_MENS.includes(b.forma)) throw new Erro("Forma de pagamento inválida.");
+  }
+  await tx(async c => {
+    const m = (await c.query("SELECT id, nome FROM mediuns WHERE id = $1", [b.mediumId])).rows[0];
+    if (!m) throw new Erro("Médium não encontrado.", 404);
+    const pago = b.status === "pago";
+    await c.query(`INSERT INTO mensalidades (id, medium_id, medium_nome, referencia, status, valor, dia, forma, obs)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (medium_id, referencia) DO UPDATE SET status = EXCLUDED.status, valor = EXCLUDED.valor, dia = EXCLUDED.dia,
+        forma = EXCLUDED.forma, obs = EXCLUDED.obs, medium_nome = EXCLUDED.medium_nome, data = now()`,
+      [id(), m.id, m.nome, b.referencia, b.status, pago ? r2(b.valor) : 0, pago ? (isDia(b.dia) ? b.dia : agoraBR().dia) : null, pago ? b.forma : "", txt(b.obs, 200)]);
+  });
+  res.json({ ok: true });
+}));
+app.delete("/api/mensalidades/:id", h(async (req, res) => {
+  await tx(c => c.query("DELETE FROM mensalidades WHERE id = $1", [req.params.id]));
+  res.json({ ok: true });
+}));
+app.get("/api/mensalidades/ano", h(async (req, res) => {
+  const ano = /^\d{4}$/.test(req.query.ano || "") ? req.query.ano : agoraBR().dia.slice(0, 4);
+  const r = await pool.query("SELECT * FROM mensalidades WHERE referencia LIKE $1 ORDER BY referencia, medium_nome", [ano + "-%"]);
+  res.json({ ano, mensalidades: rows(r) });
+}));
+
 /* despesas e ajustes gerais */
 app.post("/api/despesas", h(async (req, res) => {
   const b = req.body || {};
@@ -455,7 +502,8 @@ app.delete("/api/despesas/:id", h(async (req, res) => {
   res.json({ ok: true });
 }));
 app.put("/api/config", h(async (req, res) => {
-  const valor = { nome: txt(req.body?.nome, 120) };
+  const vm = req.body?.valorMensalidade;
+  const valor = { nome: txt(req.body?.nome, 120), valorMensalidade: numOk(vm) && vm >= 0 ? r2(vm) : 100 };
   await tx(c => c.query("INSERT INTO config (chave, valor) VALUES ('geral', $1) ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor", [JSON.stringify(valor)]));
   res.json({ ok: true });
 }));
