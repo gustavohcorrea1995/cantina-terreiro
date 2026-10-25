@@ -100,8 +100,27 @@ const SEED_PRODUTOS = [
   ["Coca Cola", "Bebidas", "un"], ["Coca Cola Zero", "Bebidas", "un"], ["Guaraná", "Bebidas", "un"], ["Guaraná Zero", "Bebidas", "un"],
   ["Pepsi Black", "Bebidas", "un"], ["Água sem gás", "Bebidas", "un"], ["Água com gás", "Bebidas", "un"],
 ];
+// desfaz os efeitos de uma venda (estoque e conta) e a apaga
+async function apagarVenda(c, v) {
+  if (!v.cancelada) {
+    for (const i of v.itens || []) await c.query("UPDATE produtos SET estoque = estoque + $2 WHERE id = $1", [i.produtoId, r3(i.qtd)]);
+    if (v.pagamento === "conta" && v.medium_id) await c.query("UPDATE mediuns SET saldo = saldo - $2 WHERE id = $1", [v.medium_id, v.total]);
+  }
+  await c.query("DELETE FROM vendas WHERE id = $1", [v.id]);
+}
+async function limpezaUnica(chave, fn) {
+  const ja = await pool.query("SELECT 1 FROM config WHERE chave = $1", [chave]);
+  if (ja.rowCount) return;
+  await tx(async c => { await fn(c); await c.query("INSERT INTO config (chave, valor) VALUES ($1, 'true') ON CONFLICT (chave) DO NOTHING", [chave]); });
+}
 async function prepararBanco() {
   await pool.query(SCHEMA);
+  // pedido do responsável: apagar as vendas de teste feitas em 24/10/2026 (uma vez só)
+  await limpezaUnica("limpeza-testes-2026-10-24", async c => {
+    const vs = (await c.query("SELECT * FROM vendas WHERE dia = '2026-10-24' FOR UPDATE")).rows;
+    for (const v of vs) { await apagarVenda(c, v); console.log(`Venda de teste apagada: ${v.dia} ${v.hora} ${v.medium_nome || "avulso"} R$ ${v.total} (${v.pagamento}${v.cancelada ? ", já cancelada" : ""})`); }
+    console.log(`Limpeza de testes de 24/10/2026: ${vs.length} venda(s) apagada(s)`);
+  });
   const seeded = await pool.query("SELECT 1 FROM config WHERE chave = 'seeded'");
   if (seeded.rowCount) return;
   await tx(async c => {
@@ -241,6 +260,15 @@ app.post("/api/vendas/:id/cancelar", h(async (req, res) => {
     await c.query("UPDATE vendas SET cancelada = true, cancelada_em = now() WHERE id = $1", [v.id]);
     for (const i of v.itens || []) await c.query("UPDATE produtos SET estoque = estoque + $2 WHERE id = $1", [i.produtoId, r3(i.qtd)]);
     if (v.pagamento === "conta" && v.medium_id) await c.query("UPDATE mediuns SET saldo = saldo - $2 WHERE id = $1", [v.medium_id, v.total]);
+  });
+  res.json({ ok: true });
+}));
+
+app.delete("/api/vendas/:id", h(async (req, res) => {
+  await tx(async c => {
+    const v = (await c.query("SELECT * FROM vendas WHERE id = $1 FOR UPDATE", [req.params.id])).rows[0];
+    if (!v) throw new Erro("Venda não encontrada.", 404);
+    await apagarVenda(c, v);
   });
   res.json({ ok: true });
 }));

@@ -563,7 +563,7 @@ function viewVendas(){
       <td>${v.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : esc(PAG_LABEL(v.pagamento))}</td>
       <td class="r num">${money(v.total)}</td>
       <td class="r num">${money((Number(v.total)||0) - (Number(v.custoTotal)||0))}</td>
-      <td class="r">${v.cancelada ? `<span class="pill">Cancelada</span>` : `<button class="btn sm ghost" data-act="venda-cancel" data-id="${v.id}" type="button">Cancelar</button>`}</td>
+      <td class="r">${v.cancelada ? `<span class="pill">Cancelada</span> <button class="btn sm ghost" data-act="venda-apagar" data-id="${v.id}" type="button" style="color:var(--danger)">Apagar</button>` : `<button class="btn sm ghost" data-act="venda-cancel" data-id="${v.id}" type="button">Cancelar</button>`}</td>
     </tr>`).join("")}
   </tbody></table></div>` : `<div class="panel empty"><strong>Nenhuma venda no período</strong><span>As vendas registradas na aba Vender aparecem aqui.</span></div>`}`;
 }
@@ -1120,6 +1120,9 @@ const ACT = {
   "cat": d => { S.cat = d.k; render(); },
   "period": d => { S.period = {...S.period, key:d.k}; if (d.k === "custom" && !S.period.start){ const [a, b] = [isoDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), today()]; S.period.start = a; S.period.end = b; } prefSet("period", S.period); render(); refresh(); },
   "venda-cancel": d => cancelVenda(d.id),
+  "venda-apagar": d => { const v = S.vendas.find(x => x.id === d.id); if (!v) return;
+    confirmBox({title: "Apagar venda de vez?", text: `A venda de ${money(v.total)} para ${v.mediumNome || "avulso"} em ${fmtDay(v.dia)} às ${v.hora} some do histórico, do balanço e do Excel. Use só para vendas de teste ou lançadas por engano.`, yes: "Apagar de vez", danger: true,
+      onYes: async () => { try { await mut("DELETE", "/api/vendas/" + v.id); toast("Venda apagada"); } catch (e){ toast(dbErr(e), true); } }}); },
   "prod-new": () => produtoForm(null),
   "prod-edit": (d, el, e) => { if (e.target.closest("button")) return; produtoForm(S.produtos.find(p => p.id === d.id)); },
   "prod-import": () => produtoImport(),
