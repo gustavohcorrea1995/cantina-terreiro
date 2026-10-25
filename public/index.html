@@ -759,7 +759,7 @@ function viewBalanco(){
 
 /* ----- Mensalidades ----- */
 const valorMens = () => { const v = Number(S.config.valorMensalidade); return isFinite(v) && v > 0 ? v : 100; };
-const refLabel = ref => { const [y, m] = ref.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {month:"long", year:"numeric"}); };
+const refLabel = ref => { const [y, m] = ref.split("-").map(Number); const t = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {month:"long", year:"numeric"}); return t.charAt(0).toUpperCase() + t.slice(1); };
 const FORMAS_MENS = {pix:"Pix", dinheiro:"Dinheiro", credito:"Crédito", debito:"Débito"};
 function mensLinhas(){
   const reg = new Map(S.mensalidades.map(x => [x.mediumId, x]));
@@ -782,7 +782,7 @@ function viewMensalidades(){
     <button class="btn" data-act="men-export" type="button">Exportar ano para Excel</button></div>
   <div class="row" style="margin-bottom:14px;gap:8px">
     <button class="btn sm" data-act="mref" data-k="-1" type="button" aria-label="Mês anterior">‹</button>
-    <b style="font-family:var(--f-display);font-size:1.15rem;min-width:170px;text-align:center;text-transform:capitalize">${esc(refLabel(S.mRef))}</b>
+    <b style="font-family:var(--f-display);font-size:1.15rem;min-width:170px;text-align:center">${esc(refLabel(S.mRef))}</b>
     <button class="btn sm" data-act="mref" data-k="1" type="button" aria-label="Próximo mês">›</button>
   </div>
   <div class="kpis" style="margin-bottom:16px">
@@ -814,7 +814,7 @@ function mensalidadeForm(mid){
   const sugestao = hoje.slice(0, 7) === S.mRef ? hoje : isoDay(new Date(y, mo - 1, Math.min(10, new Date(y, mo, 0).getDate())));
   openModal({
     title: `Mensalidade · ${m.nome}`,
-    body: `<div class="muted">Referente a <b style="color:var(--ink);text-transform:capitalize">${esc(refLabel(S.mRef))}</b></div>
+    body: `<div class="muted">Referente a <b style="color:var(--ink)">${esc(refLabel(S.mRef))}</b></div>
       <div class="grid3"><div class="field"><label for="mp-valor">Valor pago</label><input class="input num" id="mp-valor" name="valor" inputmode="decimal" value="${String(valorMens()).replace(".", ",")}"></div>
       <div class="field"><label for="mp-dia">Data do pagamento</label><input class="input" type="date" id="mp-dia" name="dia" value="${sugestao}" max="${hoje}"></div>
       <div class="field"><label for="mp-forma">Forma</label><select class="input" id="mp-forma" name="forma">${Object.entries(FORMAS_MENS).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div></div>
@@ -1278,7 +1278,7 @@ const ACT = {
   "men-pagar": d => mensalidadeForm(d.id),
   "men-isentar": async d => { try { await mut("POST", "/api/mensalidades", {mediumId: d.id, referencia: S.mRef, status: "isento"}); toast("Marcado como isento"); } catch (e){ toast(dbErr(e), true); } },
   "men-desfazer": d => { const x = S.mensalidades.find(y => y.id === d.id); if (!x) return;
-    confirmBox({title: "Voltar para pendente?", text: `${x.mediumNome} volta a ficar pendente em ${refLabel(S.mRef)}${x.status === "pago" ? `. O pagamento de ${money(x.valor)} será removido` : ""}.`, yes: "Voltar para pendente", danger: true,
+    confirmBox({title: "Voltar para pendente?", text: `${x.mediumNome} volta a ficar pendente em ${refLabel(S.mRef).toLowerCase()}${x.status === "pago" ? `. O pagamento de ${money(x.valor)} será removido` : ""}.`, yes: "Voltar para pendente", danger: true,
       onYes: async () => { try { await mut("DELETE", "/api/mensalidades/" + x.id); toast("Mensalidade voltou para pendente"); } catch (e){ toast(dbErr(e), true); } }}); },
   "men-export": () => exportMensalidades(),
   "config": () => configForm(),
