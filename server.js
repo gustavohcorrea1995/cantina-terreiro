@@ -144,6 +144,8 @@ async function prepararBanco() {
     for (const v of vs) { await apagarVenda(c, v); console.log(`Venda de teste apagada: ${v.dia} ${v.hora} ${v.medium_nome || "avulso"} R$ ${v.total} (${v.pagamento}${v.cancelada ? ", já cancelada" : ""})`); }
     console.log(`Limpeza de testes de 24/10/2026: ${vs.length} venda(s) apagada(s)`);
   });
+  // importação dos dados do sistema antigo (uma vez só)
+  await limpezaUnica("importacao-2026-10-25", c => require("./importacao-2026-10-25.js")(c, { id, r2, r3, dia: agoraBR().dia, acertarSaldo, log: m => console.log(m) }));
   const seeded = await pool.query("SELECT 1 FROM config WHERE chave = 'seeded'");
   if (seeded.rowCount) return;
   await tx(async c => {
@@ -467,6 +469,5 @@ app.use((err, req, res, next) => {
 });
 
 prepararBanco()
-  .then(() => diagnostico().catch(e => console.error("DIAG falhou", e.message)))
   .then(() => app.listen(PORT, () => console.log(`Cantina no ar na porta ${PORT}${SENHA ? " (com senha)" : " (sem senha)"}`)))
   .catch(e => { console.error("Falha ao preparar o banco:", e.message); process.exit(1); });

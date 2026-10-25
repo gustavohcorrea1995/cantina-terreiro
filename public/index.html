@@ -470,7 +470,7 @@ function viewVender(){
     <div class="field"><label for="cart-medium">Quem está comprando</label>
       <select class="input" id="cart-medium" data-keep="no">
         <option value="">Consulente / visitante (avulso)</option>
-        ${meds.map(m => `<option value="${m.id}" ${m.id === S.cartMedium ? "selected" : ""}>${esc(m.nome)}</option>`).join("")}
+        ${meds.map(m => { const ap = /^Apelido:\s*(.+)$/i.exec(m.obs || ""); return `<option value="${m.id}" ${m.id === S.cartMedium ? "selected" : ""}>${esc(m.nome)}${ap && !norm(m.nome).startsWith(norm(ap[1])) ? ` (${esc(ap[1])})` : ""}</option>`; }).join("")}
       </select>
       ${med && (Number(med.saldo)||0) > 0.004 ? `<span class="small" style="color:var(--danger)">Conta em aberto: <b class="num">${money(med.saldo)}</b></span>` : ""}
     </div>
@@ -585,7 +585,7 @@ function viewMediuns(){
   const q = norm(S.mBusca);
   const comprado = new Map();
   S.vendas.filter(v => !v.cancelada && v.mediumId).forEach(v => comprado.set(v.mediumId, (comprado.get(v.mediumId)||0) + (Number(v.total)||0)));
-  const list = [...S.mediuns].sort((a,b) => (a.ativo === false) - (b.ativo === false) || byName(a,b)).filter(m => !q || norm(m.nome).includes(q) || norm(m.telefone).includes(q));
+  const list = [...S.mediuns].sort((a,b) => (a.ativo === false) - (b.ativo === false) || byName(a,b)).filter(m => !q || norm(m.nome).includes(q) || norm(m.telefone).includes(q) || norm(m.obs).includes(q));
   const aberto = S.mediuns.reduce((a, m) => a + Math.max(0, Number(m.saldo)||0), 0);
   const devedores = S.mediuns.filter(m => (Number(m.saldo)||0) > 0.004).length;
   return `<div class="section-head"><div><h2>Médiuns</h2><div class="muted small">${S.mediuns.filter(m=>m.ativo!==false).length} ativo(s) · Em aberto: <b class="num" style="color:${aberto>0?"var(--danger)":"inherit"}">${money(aberto)}</b> (${devedores} conta(s))</div></div>
