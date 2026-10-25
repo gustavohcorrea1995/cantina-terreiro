@@ -91,6 +91,10 @@ CREATE TABLE IF NOT EXISTS pagamentos (
   valor numeric(12,2) NOT NULL, forma text NOT NULL, obs text NOT NULL DEFAULT '');
 CREATE INDEX IF NOT EXISTS pagamentos_dia ON pagamentos (dia);
 CREATE INDEX IF NOT EXISTS pagamentos_medium ON pagamentos (medium_id);
+CREATE TABLE IF NOT EXISTS acertos (
+  id text PRIMARY KEY, data timestamptz NOT NULL DEFAULT now(), dia date NOT NULL, medium_id text, medium_nome text NOT NULL DEFAULT '',
+  valor numeric(12,2) NOT NULL, saldo_novo numeric(12,2) NOT NULL, descricao text NOT NULL DEFAULT '');
+CREATE INDEX IF NOT EXISTS acertos_medium ON acertos (medium_id);
 `;
 const SEED_MEDIUNS = ["Pai Oscar", "Mãe Cintia", "Mãe Marcela", "Mãe Manuela", "Gustavo", "Suelin Schio", "Deivid", "Miguel", "Gabi", "Izabelle", "Chuim", "Claudio", "Celmo", "Ket", "Elisa", "Erika", "Lucas", "Alessandra", "Marcia Mello", "Sandra", "Cris", "Juca", "Thaiz", "Gi Wollertt", "Karla", "Suellin", "Kaue", "Camille", "Val", "Carol", "Francielle", "Cleverson"];
 const SEED_PRODUTOS = [
@@ -108,10 +112,29 @@ async function apagarVenda(c, v) {
   }
   await c.query("DELETE FROM vendas WHERE id = $1", [v.id]);
 }
+// define o saldo da conta de um médium, deixando registrado no extrato
+async function acertarSaldo(c, m, saldo, descricao) {
+  const delta = r2(saldo - Number(m.saldo));
+  if (!delta) return 0;
+  await c.query("INSERT INTO acertos (id, dia, medium_id, medium_nome, valor, saldo_novo, descricao) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+    [id(), agoraBR().dia, m.id, m.nome, delta, r2(saldo), txt(descricao, 200)]);
+  await c.query("UPDATE mediuns SET saldo = $2 WHERE id = $1", [m.id, r2(saldo)]);
+  return delta;
+}
 async function limpezaUnica(chave, fn) {
   const ja = await pool.query("SELECT 1 FROM config WHERE chave = $1", [chave]);
   if (ja.rowCount) return;
   await tx(async c => { await fn(c); await c.query("INSERT INTO config (chave, valor) VALUES ($1, 'true') ON CONFLICT (chave) DO NOTHING", [chave]); });
+}
+async function diagnostico() {
+  const q = async sql => (await pool.query(sql)).rows;
+  const [cont] = await q("SELECT (SELECT count(*) FROM mediuns) mediuns, (SELECT count(*) FROM produtos) produtos, (SELECT count(*) FROM vendas) vendas, (SELECT count(*) FROM pagamentos) pagamentos, (SELECT count(*) FROM movimentos) movimentos, (SELECT count(*) FROM despesas) despesas");
+  console.log("DIAG contagens " + JSON.stringify(cont));
+  for (const r of await q("SELECT dia, count(*) n, sum(total) total, bool_or(cancelada) alguma_cancelada FROM vendas GROUP BY dia ORDER BY dia")) console.log("DIAG vendas " + JSON.stringify(r));
+  for (const r of await q("SELECT nome, saldo, ativo FROM mediuns ORDER BY nome")) console.log("DIAG medium " + JSON.stringify(r));
+  for (const r of await q("SELECT nome, categoria, custo, preco, estoque, ativo FROM produtos ORDER BY nome")) console.log("DIAG produto " + JSON.stringify(r));
+  for (const r of await q("SELECT dia, medium_nome, valor, forma FROM pagamentos ORDER BY data")) console.log("DIAG pagamento " + JSON.stringify(r));
+  for (const r of await q("SELECT dia, tipo, nome, qtd FROM movimentos ORDER BY data")) console.log("DIAG mov " + JSON.stringify(r));
 }
 async function prepararBanco() {
   await pool.query(SCHEMA);
@@ -195,11 +218,12 @@ app.get("/api/estado", h(async (req, res) => {
   });
 }));
 app.get("/api/mediuns/:id/extrato", h(async (req, res) => {
-  const [v, p] = await Promise.all([
+  const [v, p, a] = await Promise.all([
     pool.query("SELECT * FROM vendas WHERE medium_id = $1 ORDER BY data DESC LIMIT 300", [req.params.id]),
     pool.query("SELECT * FROM pagamentos WHERE medium_id = $1 ORDER BY data DESC LIMIT 300", [req.params.id]),
+    pool.query("SELECT * FROM acertos WHERE medium_id = $1 ORDER BY data DESC LIMIT 300", [req.params.id]),
   ]);
-  res.json({ vendas: rows(v), pagamentos: rows(p) });
+  res.json({ vendas: rows(v), pagamentos: rows(p), acertos: rows(a) });
 }));
 
 /* vendas */
@@ -339,13 +363,13 @@ app.post("/api/entradas", h(async (req, res) => {
 }));
 app.post("/api/ajustes", h(async (req, res) => {
   const b = req.body || {};
-  if (!["ajuste", "perda"].includes(b.tipo)) throw new Erro("Tipo de ajuste inválido.");
+  if (!["ajuste", "perda", "inicial"].includes(b.tipo)) throw new Erro("Tipo de ajuste inválido.");
   if (!numOk(b.q) || b.q < 0) throw new Erro("Informe a quantidade.");
   const delta = await tx(async c => {
     const p = (await c.query("SELECT * FROM produtos WHERE id = $1 FOR UPDATE", [b.produtoId])).rows[0];
     if (!p) throw new Erro("Produto não encontrado.", 404);
     const q = r3(b.q);
-    const delta = b.tipo === "ajuste" ? r3(q - p.estoque) : -q;
+    const delta = b.tipo === "perda" ? -q : r3(q - p.estoque);
     if (!delta) return 0;
     await c.query("INSERT INTO movimentos (id, tipo, dia, produto_id, nome, qtd, custo_unit, total, obs) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
       [id(), b.tipo, agoraBR().dia, p.id, p.nome, delta, r2(p.custo), r2(delta * p.custo), txt(b.obs, 200)]);
@@ -388,6 +412,16 @@ app.put("/api/mediuns/:id", h(async (req, res) => {
 }));
 app.delete("/api/mediuns/:id", h(async (req, res) => {
   await tx(c => c.query("DELETE FROM mediuns WHERE id = $1", [req.params.id]));
+  res.json({ ok: true });
+}));
+app.post("/api/mediuns/:id/acerto", h(async (req, res) => {
+  const b = req.body || {};
+  if (!numOk(b.saldo) || Math.abs(b.saldo) > 1e6) throw new Erro("Informe o novo saldo.");
+  await tx(async c => {
+    const m = (await c.query("SELECT * FROM mediuns WHERE id = $1 FOR UPDATE", [req.params.id])).rows[0];
+    if (!m) throw new Erro("Médium não encontrado.", 404);
+    await acertarSaldo(c, m, b.saldo, txt(b.descricao, 200) || "Acerto de saldo");
+  });
   res.json({ ok: true });
 }));
 app.post("/api/pagamentos", h(async (req, res) => {
@@ -433,5 +467,6 @@ app.use((err, req, res, next) => {
 });
 
 prepararBanco()
+  .then(() => diagnostico().catch(e => console.error("DIAG falhou", e.message)))
   .then(() => app.listen(PORT, () => console.log(`Cantina no ar na porta ${PORT}${SENHA ? " (com senha)" : " (sem senha)"}`)))
   .catch(e => { console.error("Falha ao preparar o banco:", e.message); process.exit(1); });

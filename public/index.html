@@ -945,7 +945,7 @@ async function mediumOpen(id){
   const load = async () => {
     try {
       const j = await api("GET", "/api/mediuns/" + encodeURIComponent(id) + "/extrato");
-      extrato = [...j.vendas.map(x => ({k:"v", ...x})), ...j.pagamentos.map(x => ({k:"p", ...x}))].sort((a,b) => (b.data||"").localeCompare(a.data||""));
+      extrato = [...j.vendas.map(x => ({k:"v", ...x})), ...j.pagamentos.map(x => ({k:"p", ...x})), ...(j.acertos || []).map(x => ({k:"a", ...x}))].sort((a,b) => (b.data||"").localeCompare(a.data||""));
     } catch { extrato = []; }
     if (modalLive) modalLive();
   };
@@ -959,7 +959,7 @@ async function mediumOpen(id){
         <div class="field" style="margin-top:10px"><label for="pg-obs">Observação</label><input class="input" id="pg-obs" name="obs" placeholder="Opcional"></div>
       </div>
       <div><h3 style="font-size:1rem;margin-bottom:8px">Extrato</h3><div id="md-extrato" class="muted small">Carregando…</div></div>`,
-    foot: `<button type="button" class="btn danger" data-act="med-del" data-id="${id}" style="margin-right:auto">Excluir</button><button type="button" class="btn" data-act="med-edit" data-id="${id}">Editar dados</button><button type="button" class="btn ghost" data-act="modal-close">Fechar</button>`,
+    foot: `<button type="button" class="btn danger" data-act="med-del" data-id="${id}" style="margin-right:auto">Excluir</button><button type="button" class="btn" data-act="med-acerto" data-id="${id}">Acertar saldo</button><button type="button" class="btn" data-act="med-edit" data-id="${id}">Editar dados</button><button type="button" class="btn ghost" data-act="modal-close">Fechar</button>`,
     onSubmit: async fd => {
       if (!guardWrite()) return;
       const m = S.mediuns.find(x => x.id === id); const v = num(fd.get("valor"));
@@ -980,12 +980,30 @@ async function mediumOpen(id){
       const ex = $("#md-extrato"); if (!ex || extrato === null) return;
       ex.className = "";
       ex.innerHTML = extrato.length ? `<div class="tablewrap"><table><thead><tr><th>Data</th><th>Lançamento</th><th class="r">Valor</th></tr></thead><tbody>
-        ${extrato.map(x => x.k === "v" ? `<tr class="${x.cancelada ? "cancel" : ""}"><td class="num" style="white-space:nowrap">${fmtDay(x.dia)} ${esc(x.hora || "")}</td><td>${x.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : `<span class="pill">${esc(PAG_LABEL(x.pagamento))}</span>`} <span class="items-sm">${esc(itensResumo(x))}</span></td><td class="r num">${money(x.total)}</td></tr>`
+        ${extrato.map(x => x.k === "a" ? `<tr><td class="num" style="white-space:nowrap">${fmtDay(x.dia)}</td><td><span class="pill">Acerto de saldo</span> <span class="items-sm">${esc(x.descricao || "")} · saldo passou a ${money(x.saldoNovo)}</span></td><td class="r num">${x.valor > 0 ? "" : "−"}${money(Math.abs(x.valor))}</td></tr>` : x.k === "v" ? `<tr class="${x.cancelada ? "cancel" : ""}"><td class="num" style="white-space:nowrap">${fmtDay(x.dia)} ${esc(x.hora || "")}</td><td>${x.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : `<span class="pill">${esc(PAG_LABEL(x.pagamento))}</span>`} <span class="items-sm">${esc(itensResumo(x))}</span></td><td class="r num">${money(x.total)}</td></tr>`
           : `<tr><td class="num" style="white-space:nowrap">${fmtDay(x.dia)}</td><td><span class="pill ok">Pagamento · ${esc(PAG_LABEL(x.forma))}</span> <span class="items-sm">${esc(x.obs || "")}</span></td><td class="r num" style="color:var(--accent)">−${money(x.valor)}</td></tr>`).join("")}
       </tbody></table></div>` : `<div class="muted small">Nenhuma compra registrada ainda.</div>`;
     }
   });
   load();
+}
+
+function acertoForm(mid){
+  const m = S.mediuns.find(x => x.id === mid); if (!m) return;
+  openModal({
+    title: `Acertar saldo · ${m.nome}`,
+    body: `<p class="muted" style="margin:0">Use para lançar uma dívida antiga ou corrigir a conta. Para registrar um pagamento recebido, use “Receber pagamento”.</p>
+      <div class="muted">Saldo atual: <b class="num" style="color:var(--ink)">${money(m.saldo)}</b></div>
+      <div class="grid2"><div class="field"><label for="ac-saldo">Novo saldo (quanto deve)</label><input class="input num" id="ac-saldo" name="saldo" inputmode="decimal" placeholder="0,00"></div>
+      <div class="field"><label for="ac-desc">Motivo</label><input class="input" id="ac-desc" name="descricao" placeholder="Ex.: dívida do caderno antigo"></div></div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Salvar saldo</button>`,
+    onSubmit: async fd => {
+      const v = num(fd.get("saldo"));
+      if (!isFinite(v)){ toast("Informe o novo saldo.", true); return; }
+      try { await mut("POST", "/api/mediuns/" + mid + "/acerto", {saldo: r2(v), descricao: String(fd.get("descricao") || "").trim()}); toast("Saldo acertado"); mediumOpen(mid); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
 }
 
 /* despesas e ajustes */
@@ -1135,6 +1153,7 @@ const ACT = {
   "med-import": () => mediumImport(),
   "med-open": d => mediumOpen(d.id),
   "med-edit": d => mediumForm(S.mediuns.find(m => m.id === d.id)),
+  "med-acerto": d => acertoForm(d.id),
   "med-del": d => { const m = S.mediuns.find(x => x.id === d.id); if (!m) return; const sd = Number(m.saldo)||0;
     confirmBox({title:"Excluir médium?", text:`${m.nome} sai da lista.${sd > 0.004 ? ` Atenção: há ${money(sd)} em aberto na conta.` : ""} As compras já feitas continuam no histórico. Para só esconder da lista de compradores, use “Editar dados” e desmarque “Ativo”.`, yes:"Excluir médium", danger:true,
       onYes: async () => { if (!guardWrite()) return; try { await mut("DELETE", "/api/mediuns/" + m.id); closeModal(); toast("Médium excluído"); } catch (e){ toast(dbErr(e), true); } }}); },
