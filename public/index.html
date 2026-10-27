@@ -66,6 +66,12 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:
 .tab{border:0;background:transparent;padding:10px 16px;border-radius:999px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;min-height:44px}
 .tab[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .tab:hover:not([aria-current="page"]){background:var(--surface-2);color:var(--ink)}
+/* celular e tablet em pé: todas as abas visíveis em duas linhas; a barra da venda é que fica fixa no topo */
+@media (max-width:900px){
+  .tabs{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;margin-bottom:14px}
+  .tab{padding:8px 6px;min-height:42px;font-size:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:12px;white-space:normal;line-height:1.15}
+  .tab[aria-current="page"]{border-color:var(--ink)}
+}
 
 /* elementos */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:600;cursor:pointer;min-height:44px;white-space:nowrap}
@@ -133,7 +139,7 @@ textarea.input{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,C
   .cart .citems{max-height:none;overflow:visible}
   .cart .finalizar{position:sticky;bottom:0;background:var(--surface);margin:0 -2px;padding:10px 2px 14px;border-top:1px solid var(--line)}
   .sheet-bg{display:block;position:fixed;inset:0;z-index:40;background:rgba(10,20,15,.45)}
-  .cartstrip{display:flex;flex-direction:column;gap:8px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 61px);z-index:16;
+  .cartstrip{display:flex;flex-direction:column;gap:8px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:16;
     background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 10px 10px 14px;margin-bottom:12px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
   .cartstrip .cs-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .cartstrip .cs-medium{min-height:42px;padding:8px 10px;background:var(--surface);color:var(--ink);border-color:transparent;font-weight:600}
@@ -255,8 +261,8 @@ img{max-width:100%}
     <button class="tab" data-tab="vender" type="button">Vender</button>
     <button class="tab" data-tab="vendas" type="button">Vendas</button>
     <button class="tab" data-tab="mediuns" type="button">Médiuns</button>
-    <button class="tab" data-tab="estoque" type="button">Produtos e estoque</button>
-    <button class="tab" data-tab="balanco" type="button">Balanço</button>
+    <button class="tab" data-tab="estoque" type="button">Estoque</button>
+    <button class="tab" data-tab="balanco" type="button">Relatórios</button>
     <button class="tab" data-tab="mensalidades" type="button">Mensalidades</button>
   </nav>
   <div id="notice"></div>
@@ -296,7 +302,7 @@ const byName = (a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", {se
 const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const initials = n => String(n || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
-const PAG = {dinheiro:"Dinheiro", pix:"Pix", credito:"Crédito", debito:"Débito", caju:"Caju", conta:"Na conta"};
+const PAG = {dinheiro:"Dinheiro", pix:"Pix", credito:"Crédito", debito:"Débito", caju:"Caju", conta:"Fiado"};
 const PAG_CAIXA = ["dinheiro", "pix", "credito", "debito", "caju"];
 const PAG_LABEL = k => PAG[k] || (k === "cartao" ? "Cartão" : k);
 const MOV = {entrada:"Entrada (compra)", perda:"Perda / quebra", ajuste:"Ajuste de inventário", inicial:"Estoque inicial"};
@@ -506,7 +512,7 @@ function viewVender(){
       <select class="input" id="cart-medium" data-keep="no">
         ${opcoesMedium(meds)}
       </select>
-      ${med && (Number(med.saldo)||0) > 0.004 ? `<span class="small" style="color:var(--danger)">Conta em aberto: <b class="num">${money(med.saldo)}</b></span>` : ""}
+      ${med && (Number(med.saldo)||0) > 0.004 ? `<span class="small" style="color:var(--danger)">Fiado em aberto: <b class="num">${money(med.saldo)}</b></span>` : ""}
     </div>
     <div class="citems">${lines.length ? lines.map(l => `<div class="citem">
         <div><div class="cn">${esc(l.p.nome)}</div><div class="small muted num">${money(l.p.preco)} cada</div></div>
@@ -516,10 +522,10 @@ function viewVender(){
     ${retroBox()}
     <div class="total"><span class="lbl">Total</span><span class="v num">${money(total)}</span></div>
     <div class="field"><span class="lbl">Pagamento</span>
-      <div class="paygrid">${Object.entries(PAG).map(([k,l]) => `<button type="button" class="paybtn" data-act="pay" data-k="${k}" aria-pressed="${S.cartPag===k}" ${k==="conta" && !med ? "disabled title=\"Escolha um médium para vender na conta\"" : ""}>${l}</button>`).join("")}</div>
+      <div class="paygrid">${Object.entries(PAG).map(([k,l]) => `<button type="button" class="paybtn" data-act="pay" data-k="${k}" aria-pressed="${S.cartPag===k}" ${k==="conta" && !med ? "disabled title=\"Escolha o médium para vender fiado\"" : ""}>${l}</button>`).join("")}</div>
     </div>
     ${S.cartPag === "dinheiro" ? `<div class="grid2"><div class="field"><label for="cart-recebido">Valor recebido</label><input class="input num" id="cart-recebido" inputmode="decimal" placeholder="0,00" autocomplete="off"></div><div class="field"><span class="lbl">Troco</span><div class="troco num" id="troco" style="min-height:44px;align-items:center">—</div></div></div>` : ""}
-    ${S.cartPag === "conta" ? `<div class="small muted">O valor vai para a conta de <b>${esc(med?.nome)}</b> e pode ser pago depois na aba Médiuns.</div>` : ""}
+    ${S.cartPag === "conta" ? `<div class="small muted">Fica no fiado de <b>${esc(med?.nome)}</b>, para acertar depois na aba Médiuns.</div>` : ""}
     <div class="finalizar"><button class="btn primary big" data-act="checkout" type="button" ${!lines.length ? "disabled" : ""}>${S.retro && S.retroDia ? `Registrar venda de ${fmtDayShort(S.retroDia)}` : "Finalizar venda"} · <span class="num">${money(total)}</span></button></div>
   </aside>`;
 
@@ -536,7 +542,7 @@ function viewVender(){
   const devendo = medS && (Number(medS.saldo) || 0) > 0.004;
   const strip = ativos.length ? `<div class="cartstrip" aria-label="Resumo da venda">
       <select class="input cs-medium" id="strip-medium" data-keep="no" aria-label="Quem está comprando">${opcoesMedium(meds)}</select>
-      ${devendo ? `<span class="cs-deve">Conta em aberto: <b class="num">${money(medS.saldo)}</b></span>` : ""}
+      ${devendo ? `<span class="cs-deve">Fiado em aberto: <b class="num">${money(medS.saldo)}</b></span>` : ""}
       ${lines.length ? `<div class="cs-top"><span class="info"><span class="tot num">${money(total)}</span><span class="qt">${qfmt(lines.reduce((a, l) => a + l.qtd, 0))} item(ns)${S.retro && S.retroDia ? " · venda de " + fmtDayShort(S.retroDia) : ""}</span></span>
       <button class="btn" data-act="goto-cart" type="button">Finalizar venda</button></div>
       <div class="cs-items">${lines.map(l => `<button type="button" class="cs-chip" data-act="dec" data-id="${l.p.id}" aria-label="Tirar um ${esc(l.p.nome)}">${qfmt(l.qtd)}× ${esc(l.p.nome)}<span class="x" aria-hidden="true">−</span></button>`).join("")}</div>`
@@ -584,7 +590,7 @@ async function checkout(){
   const {lines, total} = cartTotals(); if (!lines.length) return;
   const med = S.mediuns.find(m => m.id === S.cartMedium) || null;
   const pag = S.cartPag;
-  if (pag === "conta" && !med){ toast("Escolha o médium para vender na conta.", true); return; }
+  if (pag === "conta" && !med){ toast("Escolha o médium para vender fiado.", true); return; }
   const rec = num($("#cart-recebido")?.value);
   if (S.retro && !(S.retroDia && S.retroDia < today())){ toast("Escolha a data da venda (um dia antes de hoje) ou volte para hoje.", true); return; }
   const btn = $('[data-act="checkout"]'); if (btn){ btn.disabled = true; btn.textContent = "Registrando…"; }
@@ -612,7 +618,7 @@ function viewVendas(){
       <td class="num" style="white-space:nowrap">${fmtDay(v.dia)}<div class="small muted">${esc(v.hora)}</div></td>
       <td>${esc(v.mediumNome || "Avulso")}</td>
       <td class="items-sm">${esc(itensResumo(v))}</td>
-      <td>${v.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : esc(PAG_LABEL(v.pagamento))}</td>
+      <td>${v.pagamento === "conta" ? `<span class="pill warn">Fiado</span>` : esc(PAG_LABEL(v.pagamento))}</td>
       <td class="r num">${money(v.total)}</td>
       <td class="r num">${money((Number(v.total)||0) - (Number(v.custoTotal)||0))}</td>
       <td class="r">${v.cancelada ? `<span class="pill">Cancelada</span> <button class="btn sm ghost" data-act="venda-apagar" data-id="${v.id}" type="button" style="color:var(--danger)">Apagar</button>` : `<button class="btn sm ghost" data-act="venda-cancel" data-id="${v.id}" type="button">Cancelar</button>`}</td>
@@ -623,7 +629,7 @@ function cancelVenda(id){
   const v = S.vendas.find(x => x.id === id) || S.vendasHoje.find(x => x.id === id); if (!v) return;
   confirmBox({
     title: "Cancelar venda?",
-    text: `Venda de ${money(v.total)} para ${v.mediumNome || "avulso"} em ${fmtDay(v.dia)} às ${v.hora}. Os itens voltam para o estoque${v.pagamento === "conta" ? " e o valor sai da conta do médium" : ""}.`,
+    text: `Venda de ${money(v.total)} para ${v.mediumNome || "avulso"} em ${fmtDay(v.dia)} às ${v.hora}. Os itens voltam para o estoque${v.pagamento === "conta" ? " e o valor sai do fiado do médium" : ""}.`,
     yes: "Cancelar venda", danger: true,
     onYes: async () => {
       try { await mut("POST", "/api/vendas/" + id + "/cancelar"); toast("Venda cancelada"); }
@@ -637,18 +643,22 @@ function viewMediuns(){
   const q = norm(S.mBusca);
   const comprado = new Map();
   S.vendas.filter(v => !v.cancelada && v.mediumId).forEach(v => comprado.set(v.mediumId, (comprado.get(v.mediumId)||0) + (Number(v.total)||0)));
-  const list = [...S.mediuns].sort((a,b) => (a.ativo === false) - (b.ativo === false) || byName(a,b)).filter(m => !q || norm(m.nome).includes(q) || norm(m.telefone).includes(q) || norm(m.obs).includes(q));
+  const list = [...S.mediuns].sort((a,b) => (a.ativo === false) - (b.ativo === false) || byName(a,b)).filter(m => !q || norm(m.nome).includes(q) || norm(m.telefone).includes(q) || norm(m.obs).includes(q))
+    .filter(m => !S.mFiado || (Number(m.saldo) || 0) > 0.004)
+    .sort((a, b) => S.mFiado ? (Number(b.saldo) || 0) - (Number(a.saldo) || 0) : 0);
   const aberto = S.mediuns.reduce((a, m) => a + Math.max(0, Number(m.saldo)||0), 0);
   const devedores = S.mediuns.filter(m => (Number(m.saldo)||0) > 0.004).length;
-  return `<div class="section-head"><div><h2>Médiuns</h2><div class="muted small">${S.mediuns.filter(m=>m.ativo!==false).length} ativo(s) · Em aberto: <b class="num" style="color:${aberto>0?"var(--danger)":"inherit"}">${money(aberto)}</b> (${devedores} conta(s))</div></div>
+  return `<div class="section-head"><div><h2>Médiuns</h2><div class="muted small">${S.mediuns.filter(m=>m.ativo!==false).length} ativo(s) · Fiado em aberto: <b class="num" style="color:${aberto>0?"var(--danger)":"inherit"}">${money(aberto)}</b> (${devedores} pessoa(s))</div></div>
     <div class="row"><button class="btn" data-act="med-import" type="button">Adicionar vários</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>
-  <div style="margin-bottom:12px;max-width:420px"><input class="input" id="m-busca" type="search" placeholder="Buscar médium…" value="${esc(S.mBusca)}"></div>
+  <div class="row" style="margin-bottom:12px;justify-content:space-between">
+    <div class="chips"><button type="button" class="chip" data-act="mfiado" data-k="0" aria-pressed="${!S.mFiado}">Todos</button><button type="button" class="chip" data-act="mfiado" data-k="1" aria-pressed="${!!S.mFiado}">Com fiado em aberto · ${devedores}</button></div>
+    <input class="input" id="m-busca" type="search" placeholder="Buscar médium…" value="${esc(S.mBusca)}" style="max-width:320px"></div>
   ${!S.mediuns.length ? `<div class="panel empty"><strong>Nenhum médium cadastrado</strong><span>Cadastre um por um ou cole a lista inteira de nomes de uma vez.</span><div class="row"><button class="btn" data-act="med-import" type="button">Colar lista de nomes</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>`
   : `<div class="mlist">${list.map(m => { const sd = Number(m.saldo)||0; return `<button type="button" class="mcard ${m.ativo===false?"off":""}" data-act="med-open" data-id="${m.id}">
       <span class="row" style="flex-wrap:nowrap;min-width:0"><span class="avatar">${esc(initials(m.nome))}</span><span style="min-width:0"><span class="mn">${esc(m.nome)}</span><br><span class="small muted num">${comprado.get(m.id) ? `Comprou ${money(comprado.get(m.id))} no período` : (m.telefone ? esc(m.telefone) : (m.ativo===false ? "Inativo" : "Sem compras no período"))}</span></span></span>
-      ${sd > 0.004 ? `<span class="pill danger num">Deve ${money(sd)}</span>` : sd < -0.004 ? `<span class="pill ok num">Crédito ${money(-sd)}</span>` : `<span class="pill ok">Em dia</span>`}
+      ${sd > 0.004 ? `<span class="pill danger num">Fiado ${money(sd)}</span>` : sd < -0.004 ? `<span class="pill ok num">Crédito ${money(-sd)}</span>` : `<span class="pill ok">Em dia</span>`}
     </button>`; }).join("")}</div>`}
-  <p class="muted small" style="margin-top:14px">Comprado no período: ${periodLabel()} (mude o período em Vendas ou Balanço).</p>`;
+  <p class="muted small" style="margin-top:14px">Comprado no período: ${periodLabel()} (mude o período em Vendas ou Relatórios).</p>`;
 }
 
 /* ----- Produtos e estoque ----- */
@@ -754,7 +764,7 @@ function viewBalanco(){
   const maxFat = Math.max(1, ...prods.map(p => p.fat));
   const meds = [...B.porMedium.entries()].map(([id, m]) => ({id, ...m})).sort((a,b) => b.total - a.total);
   const li = (l, v, cls = "") => `<div class="li ${cls}"><span>${l}</span><span class="num">${v}</span></div>`;
-  return `<div class="section-head"><div><h2>Balanço</h2><div class="muted small">${periodLabel()} · ${B.n} venda(s)</div></div>
+  return `<div class="section-head"><div><h2>Relatórios e balanço</h2><div class="muted small">${periodLabel()} · ${B.n} venda(s)</div></div>
     <button class="btn primary" data-act="export" type="button">Exportar para Excel</button></div>
   ${periodBar()}
   <div class="stack">
@@ -763,7 +773,7 @@ function viewBalanco(){
       <div class="kpi"><div class="k">Custo dos produtos vendidos</div><div class="v num">${money(B.cmv)}</div><div class="d">pelo custo de cada item na hora da venda</div></div>
       <div class="kpi hero"><div class="k">Lucro bruto</div><div class="v num">${money(B.lucro)}</div><div class="d">margem de ${pct(B.margem)}</div></div>
       <div class="kpi ${B.resultado < 0 ? "neg" : ""}"><div class="k">Resultado líquido</div><div class="v num">${money(B.resultado)}</div><div class="d">lucro − despesas ${B.ajustes ? "− perdas" : ""}</div></div>
-      <div class="kpi ${B.aberto > 0 ? "neg" : ""}"><div class="k">A receber dos médiuns</div><div class="v num">${money(B.aberto)}</div><div class="d">total em aberto hoje</div></div>
+      <div class="kpi ${B.aberto > 0 ? "neg" : ""}"><div class="k">Fiado a receber</div><div class="v num">${money(B.aberto)}</div><div class="d">total em aberto hoje</div></div>
     </div>
     <div class="panel"><div class="section-head" style="margin-bottom:6px"><h3 style="font-size:1.05rem">Faturamento ${Math.round((parseDay(periodRange()[1]) - parseDay(periodRange()[0])) / 864e5) + 1 <= 62 ? "por dia" : "por mês"}</h3></div>${chartSvg(B) || `<div class="muted small">Escolha um período com mais de um dia para ver o gráfico.</div>`}</div>
     <div class="cols2">
@@ -778,11 +788,11 @@ function viewBalanco(){
       <div class="panel"><h3 style="font-size:1.05rem;margin-bottom:8px">Caixa do período</h3><div class="ledger">
         ${PAG_CAIXA.map(k => li("Vendas · " + PAG[k], money(B.forma[k]))).join("")}
         ${B.forma.cartao ? li("Vendas · Cartão", money(B.forma.cartao)) : ""}
-        ${li("Contas de médiuns recebidas", money(B.recebConta))}
+        ${li("Fiado recebido", money(B.recebConta))}
         ${li("(−) Compras de mercadoria", money(-B.compras))}
         ${li("(−) Outras despesas", money(-B.despesas))}
         ${li("Saldo de caixa", money(B.saldoCaixa), "tot")}
-        <div class="small muted" style="margin-top:8px">Vendido na conta (ainda não recebido no caixa): <b class="num">${money(B.forma.conta)}</b>. Estoque atual vale <span class="num">${money(B.estCusto)}</span> a custo.</div>
+        <div class="small muted" style="margin-top:8px">Vendido fiado (ainda não entrou no caixa): <b class="num">${money(B.forma.conta)}</b>. Estoque atual vale <span class="num">${money(B.estCusto)}</span> a custo.</div>
       </div></div>
     </div>
     <div class="panel"><div class="section-head"><h3 style="font-size:1.05rem">Produtos mais vendidos</h3></div>
@@ -792,7 +802,7 @@ function viewBalanco(){
     </div>
     <div class="cols2">
       <div class="panel"><h3 style="font-size:1.05rem;margin-bottom:8px">Compras por médium</h3>
-        ${meds.length || B.avulso.n ? `<div class="tablewrap" style="border:0"><table><thead><tr><th>Comprador</th><th class="r">Compras</th><th class="r">Total</th><th class="r">Na conta</th></tr></thead><tbody>
+        ${meds.length || B.avulso.n ? `<div class="tablewrap" style="border:0"><table><thead><tr><th>Comprador</th><th class="r">Compras</th><th class="r">Total</th><th class="r">Fiado</th></tr></thead><tbody>
         ${meds.map(m => `<tr class="click" data-act="med-open" data-id="${m.id}"><td>${esc(m.nome)}</td><td class="r num">${m.n}</td><td class="r num">${money(m.total)}</td><td class="r num">${money(m.conta)}</td></tr>`).join("")}
         ${B.avulso.n ? `<tr><td class="muted">Consulentes / avulso</td><td class="r num">${B.avulso.n}</td><td class="r num">${money(B.avulso.total)}</td><td class="r num">—</td></tr>` : ""}
         </tbody></table></div>` : `<div class="muted small">Sem vendas no período.</div>`}
@@ -1110,7 +1120,7 @@ async function mediumOpen(id){
   openModal({
     title: m0.nome, wide: true,
     body: `<div id="md-live"></div>
-      <div class="panel"><h3 style="font-size:1rem;margin-bottom:10px">Receber pagamento</h3>
+      <div class="panel"><h3 style="font-size:1rem;margin-bottom:10px">Receber fiado</h3>
         <div class="grid3"><div class="field"><label for="pg-valor">Valor</label><input class="input num" id="pg-valor" name="valor" inputmode="decimal" placeholder="0,00"></div>
         <div class="field"><label for="pg-forma">Forma</label><select class="input" id="pg-forma" name="forma">${PAG_CAIXA.map(k => `<option value="${k}">${PAG[k]}</option>`).join("")}</select></div>
         <div class="field"><span class="lbl">&nbsp;</span><button type="submit" class="btn primary">Registrar pagamento</button></div></div>
@@ -1133,12 +1143,12 @@ async function mediumOpen(id){
       const sd = Number(m.saldo) || 0;
       box.innerHTML = `<div class="row" style="justify-content:space-between">
         <div><div class="muted small">${esc(m.telefone || "Sem telefone")}${m.obs ? " · " + esc(m.obs) : ""}${m.ativo === false ? " · Inativo" : ""}</div></div>
-        <div style="text-align:right"><div class="lbl">Saldo da conta</div><div class="num" style="font-family:var(--f-display);font-size:1.8rem;font-weight:700;color:${sd > 0.004 ? "var(--danger)" : "var(--accent)"}">${sd > 0.004 ? money(sd) : sd < -0.004 ? "Crédito " + money(-sd) : "Em dia"}</div>
+        <div style="text-align:right"><div class="lbl">Fiado em aberto</div><div class="num" style="font-family:var(--f-display);font-size:1.8rem;font-weight:700;color:${sd > 0.004 ? "var(--danger)" : "var(--accent)"}">${sd > 0.004 ? money(sd) : sd < -0.004 ? "Crédito " + money(-sd) : "Em dia"}</div>
         ${sd > 0.004 ? `<button type="button" class="btn sm" data-act="pg-quitar" data-v="${r2(sd)}">Quitar tudo</button>` : ""}</div></div>`;
       const ex = $("#md-extrato"); if (!ex || extrato === null) return;
       ex.className = "";
       ex.innerHTML = extrato.length ? `<div class="tablewrap"><table><thead><tr><th>Data</th><th>Lançamento</th><th class="r">Valor</th></tr></thead><tbody>
-        ${extrato.map(x => x.k === "a" ? `<tr><td class="num" style="white-space:nowrap">${fmtDay(x.dia)}</td><td><span class="pill">Acerto de saldo</span> <span class="items-sm">${esc(x.descricao || "")} · saldo passou a ${money(x.saldoNovo)}</span></td><td class="r num">${x.valor > 0 ? "" : "−"}${money(Math.abs(x.valor))}</td></tr>` : x.k === "v" ? `<tr class="${x.cancelada ? "cancel" : ""}"><td class="num" style="white-space:nowrap">${fmtDay(x.dia)} ${esc(x.hora || "")}</td><td>${x.pagamento === "conta" ? `<span class="pill warn">Na conta</span>` : `<span class="pill">${esc(PAG_LABEL(x.pagamento))}</span>`} <span class="items-sm">${esc(itensResumo(x))}</span></td><td class="r num">${money(x.total)}</td></tr>`
+        ${extrato.map(x => x.k === "a" ? `<tr><td class="num" style="white-space:nowrap">${fmtDay(x.dia)}</td><td><span class="pill">Acerto de saldo</span> <span class="items-sm">${esc(x.descricao || "")} · saldo passou a ${money(x.saldoNovo)}</span></td><td class="r num">${x.valor > 0 ? "" : "−"}${money(Math.abs(x.valor))}</td></tr>` : x.k === "v" ? `<tr class="${x.cancelada ? "cancel" : ""}"><td class="num" style="white-space:nowrap">${fmtDay(x.dia)} ${esc(x.hora || "")}</td><td>${x.pagamento === "conta" ? `<span class="pill warn">Fiado</span>` : `<span class="pill">${esc(PAG_LABEL(x.pagamento))}</span>`} <span class="items-sm">${esc(itensResumo(x))}</span></td><td class="r num">${money(x.total)}</td></tr>`
           : `<tr><td class="num" style="white-space:nowrap">${fmtDay(x.dia)}</td><td><span class="pill ok">Pagamento · ${esc(PAG_LABEL(x.forma))}</span> <span class="items-sm">${esc(x.obs || "")}</span></td><td class="r num" style="color:var(--accent)">−${money(x.valor)}</td></tr>`).join("")}
       </tbody></table></div>` : `<div class="muted small">Nenhuma compra registrada ainda.</div>`;
     }
@@ -1150,7 +1160,7 @@ function acertoForm(mid){
   const m = S.mediuns.find(x => x.id === mid); if (!m) return;
   openModal({
     title: `Acertar saldo · ${m.nome}`,
-    body: `<p class="muted" style="margin:0">Use para lançar uma dívida antiga ou corrigir a conta. Para registrar um pagamento recebido, use “Receber pagamento”.</p>
+    body: `<p class="muted" style="margin:0">Use para lançar uma dívida antiga ou corrigir a conta. Para registrar um pagamento do fiado, use “Receber fiado”.</p>
       <div class="muted">Saldo atual: <b class="num" style="color:var(--ink)">${money(m.saldo)}</b></div>
       <div class="grid2"><div class="field"><label for="ac-saldo">Novo saldo (quanto deve)</label><input class="input num" id="ac-saldo" name="saldo" inputmode="decimal" placeholder="0,00"></div>
       <div class="field"><label for="ac-desc">Motivo</label><input class="input" id="ac-desc" name="descricao" placeholder="Ex.: dívida do caderno antigo"></div></div>`,
@@ -1230,9 +1240,9 @@ async function exportExcel(){
     ["Cantina", S.config.nome || "Terreiro"], ["Período", `${fmtDay(s)} a ${fmtDay(e)}`], ["Gerado em", new Date().toLocaleString("pt-BR")], ["", ""],
     ["RESULTADO", ""], ["Número de vendas", B.n], ["Faturamento", r2(B.fat)], ["Custo dos produtos vendidos", r2(B.cmv)], ["Lucro bruto", r2(B.lucro)], ["Margem bruta", B.margem],
     ["Perdas e ajustes de estoque", r2(B.ajustes)], ["Outras despesas", r2(B.despesas)], ["Resultado líquido", r2(B.resultado)], ["", ""],
-    ["CAIXA", ""], ...PAG_CAIXA.map(k => ["Vendas · " + PAG[k], r2(B.forma[k])]), ...(B.forma.cartao ? [["Vendas · Cartão", r2(B.forma.cartao)]] : []), ["Vendido na conta dos médiuns", r2(B.forma.conta)],
-    ["Contas de médiuns recebidas", r2(B.recebConta)], ["Compras de mercadoria", r2(B.compras)], ["Saldo de caixa", r2(B.saldoCaixa)], ["", ""],
-    ["POSIÇÃO ATUAL", ""], ["Total a receber dos médiuns", r2(B.aberto)], ["Estoque a preço de custo", r2(B.estCusto)], ["Estoque a preço de venda", r2(B.estVenda)],
+    ["CAIXA", ""], ...PAG_CAIXA.map(k => ["Vendas · " + PAG[k], r2(B.forma[k])]), ...(B.forma.cartao ? [["Vendas · Cartão", r2(B.forma.cartao)]] : []), ["Vendido fiado", r2(B.forma.conta)],
+    ["Fiado recebido", r2(B.recebConta)], ["Compras de mercadoria", r2(B.compras)], ["Saldo de caixa", r2(B.saldoCaixa)], ["", ""],
+    ["POSIÇÃO ATUAL", ""], ["Fiado a receber dos médiuns", r2(B.aberto)], ["Estoque a preço de custo", r2(B.estCusto)], ["Estoque a preço de venda", r2(B.estVenda)],
   ];
   const wsR = X.utils.aoa_to_sheet(resumo);
   resumo.forEach((row, r) => { const c = wsR[X.utils.encode_cell({r, c:1})]; if (c && c.t === "n") c.z = row[0] === "Margem bruta" ? FMT.pct : row[0] === "Número de vendas" ? FMT.int : FMT.money; });
@@ -1256,7 +1266,7 @@ async function exportExcel(){
   const pm2 = [...S.mediuns].sort(byName).map(m => { const x = B.porMedium.get(m.id) || {n:0,total:0,conta:0,pago:0}; return [m.nome, m.telefone || "", x.n, r2(x.total), r2(x.pago), r2(x.conta), r2(Number(m.saldo)||0), m.ativo === false ? "Inativo" : "Ativo"]; });
   for (const [id, x] of B.porMedium) if (!mm.has(id)) pm2.push([x.nome + " (excluído)", "", x.n, r2(x.total), r2(x.pago), r2(x.conta), 0, "Excluído"]);
   if (B.avulso.n) pm2.push(["Consulentes / avulso", "", B.avulso.n, r2(B.avulso.total), r2(B.avulso.total), 0, 0, ""]);
-  X.utils.book_append_sheet(wb, mkSheet(["Médium","Telefone","Nº de compras","Total comprado","Pago na hora","Na conta","Saldo em aberto (hoje)","Situação"], pm2, {2:"int",3:"money",4:"money",5:"money",6:"money"}, [28,18,13,15,14,12,20,10]), "Por médium");
+  X.utils.book_append_sheet(wb, mkSheet(["Médium","Telefone","Nº de compras","Total comprado","Pago na hora","Fiado","Fiado em aberto (hoje)","Situação"], pm2, {2:"int",3:"money",4:"money",5:"money",6:"money"}, [28,18,13,15,14,12,20,10]), "Por médium");
   // Estoque
   const est = [...S.produtos].sort(byName).map(p => { const c = Number(p.custo)||0, pr = Number(p.preco)||0, q = Number(p.estoque)||0, mn = Number(p.estoqueMinimo)||0;
     return [p.nome, p.categoria || "", p.unidade || "un", c, pr, pr ? (pr - c) / pr : 0, q, mn, q <= 0 ? "Sem estoque" : (mn && q <= mn ? "Repor" : "OK"), r2(Math.max(0,q) * c), r2(Math.max(0,q) * pr), p.ativo === false ? "Não" : "Sim"]; });
@@ -1267,7 +1277,7 @@ async function exportExcel(){
   X.utils.book_append_sheet(wb, mkSheet(["Data","Tipo","Produto","Quantidade","Custo unit.","Total","Observação"], mv, {0:"date",3:"qty",4:"money",5:"money"}, [12,22,28,11,12,12,30]), "Movimentações");
   // Pagamentos
   const pg = [...S.pagamentos].sort((a,b) => (a.data||"").localeCompare(b.data||"")).map(p => [xDate(p.dia), p.mediumNome || "", Number(p.valor)||0, PAG_LABEL(p.forma), p.obs || ""]);
-  X.utils.book_append_sheet(wb, mkSheet(["Data","Médium","Valor","Forma","Observação"], pg, {0:"date",2:"money"}, [12,28,12,12,30]), "Contas recebidas");
+  X.utils.book_append_sheet(wb, mkSheet(["Data","Médium","Valor","Forma","Observação"], pg, {0:"date",2:"money"}, [12,28,12,12,30]), "Fiado recebido");
   // Despesas
   const dp = [...S.despesas].sort((a,b) => (a.dia||"").localeCompare(b.dia||"")).map(d => [xDate(d.dia), d.descricao || "", d.categoria || "", Number(d.valor)||0]);
   X.utils.book_append_sheet(wb, mkSheet(["Data","Descrição","Categoria","Valor"], dp, {0:"date",3:"money"}, [12,34,16,12]), "Despesas");
@@ -1316,7 +1326,7 @@ const ACT = {
   "med-edit": d => mediumForm(S.mediuns.find(m => m.id === d.id)),
   "med-acerto": d => acertoForm(d.id),
   "med-del": d => { const m = S.mediuns.find(x => x.id === d.id); if (!m) return; const sd = Number(m.saldo)||0;
-    confirmBox({title:"Excluir médium?", text:`${m.nome} sai da lista.${sd > 0.004 ? ` Atenção: há ${money(sd)} em aberto na conta.` : ""} As compras já feitas continuam no histórico. Para só esconder da lista de compradores, use “Editar dados” e desmarque “Ativo”.`, yes:"Excluir médium", danger:true,
+    confirmBox({title:"Excluir médium?", text:`${m.nome} sai da lista.${sd > 0.004 ? ` Atenção: há ${money(sd)} de fiado em aberto.` : ""} As compras já feitas continuam no histórico. Para só esconder da lista de compradores, use “Editar dados” e desmarque “Ativo”.`, yes:"Excluir médium", danger:true,
       onYes: async () => { if (!guardWrite()) return; try { await mut("DELETE", "/api/mediuns/" + m.id); closeModal(); toast("Médium excluído"); } catch (e){ toast(dbErr(e), true); } }}); },
   "pg-quitar": d => { const i = $("#pg-valor"); if (i){ i.value = String(d.v).replace(".", ","); i.focus(); } },
   "desp-new": () => despesaForm(),
@@ -1325,6 +1335,7 @@ const ACT = {
   "export": () => exportExcel(),
   "mref": d => { const [y, m] = S.mRef.split("-").map(Number); const dt = new Date(y, m - 1 + Number(d.k), 1); S.mRef = isoDay(dt).slice(0, 7); S.mensalidades = []; render(); refresh(); },
   "mfiltro": d => { S.mFiltro = d.k; render(); },
+  "mfiado": d => { S.mFiado = d.k === "1"; render(); },
   "men-pagar": d => mensalidadeForm(d.id),
   "men-isentar": async d => { try { await mut("POST", "/api/mensalidades", {mediumId: d.id, referencia: S.mRef, status: "isento"}); toast("Marcado como isento"); } catch (e){ toast(dbErr(e), true); } },
   "men-desfazer": d => { const x = S.mensalidades.find(y => y.id === d.id); if (!x) return;
