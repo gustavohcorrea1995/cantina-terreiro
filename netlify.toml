@@ -1,0 +1,18 @@
+# Netlify: a tela fica em public/ e a API roda na função netlify/functions/api.mjs
+[build]
+  publish = "public"
+  command = "echo 'sem etapa de build'"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["pg-native"]
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"

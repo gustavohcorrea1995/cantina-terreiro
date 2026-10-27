@@ -12,7 +12,7 @@ types.setTypeParser(1184, v => new Date(v).toISOString());
 const PORT = process.env.PORT || 3000;
 const SENHA = (process.env.SENHA || "").trim();
 const TZ = process.env.FUSO || "America/Sao_Paulo";
-if (!process.env.DATABASE_URL) { console.error("Falta a variável DATABASE_URL"); process.exit(1); }
+if (!process.env.DATABASE_URL) console.error("Falta a variável DATABASE_URL");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -177,7 +177,7 @@ app.disable("x-powered-by");
 app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => { res.set("X-Content-Type-Options", "nosniff"); res.set("Referrer-Policy", "same-origin"); next(); });
 app.get("/healthz", (req, res) => res.send("ok"));
-app.use(express.static(path.join(__dirname, "public"), {
+app.use(express.static(path.join(typeof __dirname !== "undefined" ? __dirname : process.cwd(), "public"), {
   setHeaders: (res, p) => { if (p.endsWith(".html") || p.endsWith(".webmanifest")) res.set("Cache-Control", "no-cache"); },
 }));
 
@@ -204,7 +204,8 @@ const h = fn => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
 /* leitura */
 app.get("/api/versao", h(async (req, res) => {
-  if (versaoMem === null) versaoMem = Number((await pool.query("SELECT versao FROM meta WHERE id = 1")).rows[0]?.versao || 0);
+  // em função serverless cada instância tem sua memória: lê sempre do banco
+  if (versaoMem === null || app.locals.serverless) versaoMem = Number((await pool.query("SELECT versao FROM meta WHERE id = 1")).rows[0]?.versao || 0);
   res.set("Cache-Control", "no-store");
   res.json({ versao: versaoMem, hoje: agoraBR().dia });
 }));
@@ -521,6 +522,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ erro: "Erro no servidor. Tente de novo." });
 });
 
-prepararBanco()
-  .then(() => app.listen(PORT, () => console.log(`Cantina no ar na porta ${PORT}${SENHA ? " (com senha)" : " (sem senha)"}`)))
-  .catch(e => { console.error("Falha ao preparar o banco:", e.message); process.exit(1); });
+// preparo do banco feito uma vez por processo
+let preparo = null;
+function bancoPronto() {
+  if (!preparo) preparo = prepararBanco().catch(e => { preparo = null; throw e; });
+  return preparo;
+}
+module.exports = { app, bancoPronto };
+
+// rodando direto (Render, computador): prepara o banco e abre a porta
+if (require.main === module) {
+  bancoPronto()
+    .then(() => app.listen(PORT, () => console.log(`Cantina no ar na porta ${PORT}${SENHA ? " (com senha)" : " (sem senha)"}`)))
+    .catch(e => { console.error("Falha ao preparar o banco:", e.message); process.exit(1); });
+}
