@@ -29,3 +29,9 @@ Depois abra http://localhost:3000.
 ## Publicar no Render
 
 Web Service com Node: comando de build `npm install`, comando de start `npm start`, e as variáveis acima.
+
+## Publicar na Netlify
+
+A tela fica em `public/` e a API roda na função `netlify/functions/api.mjs`, que é gerada a partir de
+`netlify/fonte/api.mjs` + `server.js` com tudo empacotado dentro. Depois de mudar `server.js`, rode
+`npm run montar:netlify` e envie o arquivo gerado junto. Variáveis na Netlify: `DATABASE_URL` e `SENHA`.
