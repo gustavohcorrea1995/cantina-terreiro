@@ -119,7 +119,21 @@ textarea.input{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,C
 .pcard .meta{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .pcard .qbadge{position:absolute;top:-8px;right:-6px;background:var(--accent);color:var(--accent-ink);border-radius:999px;min-width:26px;height:26px;padding:0 7px;display:grid;place-items:center;font-weight:700;font-size:.85rem}
 .cart{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);display:flex;flex-direction:column;gap:14px}
-@media (max-width:900px){.cart{position:static}}
+.cart .sheet-close{display:none}
+.sheet-bg{display:none}
+/* celular e tablet em pé: a venda abre como uma gaveta por cima dos produtos */
+@media (max-width:900px){
+  .pdv .cart{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:41;max-height:min(90vh, calc(100% - env(safe-area-inset-top,0px) - 24px));overflow-y:auto;overscroll-behavior:contain;
+    border-radius:18px 18px 0 0;border-bottom:0;box-shadow:0 -10px 40px rgba(0,0,0,.25);
+    padding:18px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));
+    transform:translateY(105%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}
+  .pdv .cart.open{transform:none;visibility:visible;transition:transform .22s ease}
+  .cart .sheet-close{display:inline-flex}
+  .cart .citems{max-height:none;overflow:visible}
+  .cart .finalizar{position:sticky;bottom:0;background:var(--surface);margin:0 -2px;padding:10px 2px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+  .sheet-bg{display:block;position:fixed;inset:0;z-index:40;background:rgba(10,20,15,.45)}
+  .pdv-tools{position:sticky;top:calc(env(safe-area-inset-top,0px) + 61px);z-index:15;background:var(--bg);padding-block:8px;margin-top:-8px}
+}
 .cart h2{font-size:1.2rem}
 .citems{display:flex;flex-direction:column;gap:2px;max-height:38vh;overflow:auto}
 .citem{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
@@ -140,8 +154,11 @@ textarea.input{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,C
 .retro-note{color:var(--warn);font-weight:600;font-size:.88rem}
 .cartbar{display:none}
 @media (max-width:900px){
-  .cartbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;gap:12px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-  .cartbar .btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .cartbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;gap:12px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-shadow:0 -4px 18px rgba(0,0,0,.18)}
+  .cartbar .info{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+  .cartbar .info .tot{font-family:var(--f-display);font-size:1.35rem;font-weight:700}
+  .cartbar .info .qt{font-size:.82rem;opacity:.8}
+  .cartbar .btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);min-height:50px;padding-inline:20px;font-size:1rem}
 }
 .recent{margin-top:4px}
 .pcard.noprice{border-style:dashed;box-shadow:none}
@@ -414,7 +431,9 @@ function render(){
   const vals = {};
   view.querySelectorAll("input[id],select[id],textarea[id]").forEach(el => { if (el.type !== "checkbox") vals[el.id] = el.value; });
   const fn = {vender: viewVender, vendas: viewVendas, mediuns: viewMediuns, estoque: viewEstoque, balanco: viewBalanco, mensalidades: viewMensalidades}[S.tab] || viewVender;
+  const cartScroll = $("#cart")?.scrollTop || 0;
   view.innerHTML = fn();
+  if (cartScroll && $("#cart")) $("#cart").scrollTop = cartScroll;
   for (const [id, v] of Object.entries(vals)){ const el = document.getElementById(id); if (el && el.dataset.keep !== "no" && view.contains(el)) el.value = v; }
   if (focusId){ const el = document.getElementById(focusId); if (el){ el.focus(); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch {} } }
   renderNotice(); renderCartbar(); updateTroco();
@@ -468,8 +487,8 @@ function viewVender(){
   const meds = S.mediuns.filter(m => m.ativo !== false).sort(byName);
   const med = S.mediuns.find(m => m.id === S.cartMedium);
   if (!med && S.cartPag === "conta") S.cartPag = "dinheiro";
-  const cart = `<aside class="panel cart" id="cart" aria-label="Venda atual">
-    <div class="row" style="justify-content:space-between"><h2>Venda atual</h2>${lines.length ? `<button class="btn sm ghost" data-act="cart-clear" type="button">Limpar</button>` : ""}</div>
+  const cart = `${S.cartOpen && lines.length ? `<div class="sheet-bg" data-act="cart-close"></div>` : ""}<aside class="panel cart ${S.cartOpen && lines.length ? "open" : ""}" id="cart" aria-label="Venda atual">
+    <div class="row" style="justify-content:space-between"><h2>Venda atual</h2><span class="row" style="gap:4px">${lines.length ? `<button class="btn sm ghost" data-act="cart-clear" type="button">Limpar</button>` : ""}<button class="btn sm sheet-close" data-act="cart-close" type="button">Fechar</button></span></div>
     <div class="field"><label for="cart-medium">Quem está comprando</label>
       <select class="input" id="cart-medium" data-keep="no">
         <option value="">Consulente / visitante (avulso)</option>
@@ -489,7 +508,7 @@ function viewVender(){
     </div>
     ${S.cartPag === "dinheiro" ? `<div class="grid2"><div class="field"><label for="cart-recebido">Valor recebido</label><input class="input num" id="cart-recebido" inputmode="decimal" placeholder="0,00" autocomplete="off"></div><div class="field"><span class="lbl">Troco</span><div class="troco num" id="troco" style="min-height:44px;align-items:center">—</div></div></div>` : ""}
     ${S.cartPag === "conta" ? `<div class="small muted">O valor vai para a conta de <b>${esc(med?.nome)}</b> e pode ser pago depois na aba Médiuns.</div>` : ""}
-    <button class="btn primary big" data-act="checkout" type="button" ${!lines.length ? "disabled" : ""}>${S.retro && S.retroDia ? `Registrar venda de ${fmtDayShort(S.retroDia)}` : "Finalizar venda"} · <span class="num">${money(total)}</span></button>
+    <div class="finalizar"><button class="btn primary big" data-act="checkout" type="button" ${!lines.length ? "disabled" : ""}>${S.retro && S.retroDia ? `Registrar venda de ${fmtDayShort(S.retroDia)}` : "Finalizar venda"} · <span class="num">${money(total)}</span></button></div>
   </aside>`;
 
   const recent = S.vendasHoje.filter(v => !v.cancelada);
@@ -519,9 +538,13 @@ function retroBox(){
 function itensResumo(v){ return (v.itens || []).map(i => `${qfmt(i.qtd)}× ${i.nome}`).join(", "); }
 function renderCartbar(){
   const el = $("#cartbar");
-  if (S.tab !== "vender" || !S.cart.length){ el.innerHTML = ""; return; }
+  const estreito = matchMedia("(max-width:900px)").matches;
+  const aberto = S.tab === "vender" && S.cartOpen && S.cart.length && estreito;
+  document.documentElement.style.overflow = aberto ? "hidden" : "";
+  if (S.tab !== "vender" || !S.cart.length || aberto){ el.innerHTML = ""; return; }
   const {total, n} = cartTotals();
-  el.innerHTML = `<div class="cartbar"><span><b class="num">${qfmt(n)}</b> item(ns) · <b class="num">${money(total)}</b></span><button class="btn" data-act="goto-cart" type="button">Ver venda</button></div>`;
+  const med = S.mediuns.find(m => m.id === S.cartMedium);
+  el.innerHTML = `<div class="cartbar"><span class="info"><span class="tot num">${money(total)}</span><span class="qt">${qfmt(n)} item(ns)${med ? " · " + esc(med.nome.split(" ").slice(0, 2).join(" ")) : ""}</span></span><button class="btn" data-act="goto-cart" type="button">Finalizar venda</button></div>`;
 }
 function updateTroco(){
   const inp = $("#cart-recebido"), out = $("#troco"); if (!inp || !out) return;
@@ -541,7 +564,7 @@ async function checkout(){
   const btn = $('[data-act="checkout"]'); if (btn){ btn.disabled = true; btn.textContent = "Registrando…"; }
   try {
     const v = await api("POST", "/api/vendas", {mediumId: med ? med.id : null, pagamento: pag, recebido: isFinite(rec) ? rec : null, itens: S.cart.map(c => ({produtoId: c.id, qtd: c.qtd})), ...(S.retro ? {dia: S.retroDia, hora: S.retroHora || null} : {})});
-    S.cart = []; S.cartMedium = ""; S.cartPag = "dinheiro";
+    S.cart = []; S.cartMedium = ""; S.cartPag = "dinheiro"; S.cartOpen = false;
     const ri = $("#cart-recebido"); if (ri) ri.value = "";
     render();
     toast(`Venda registrada${v.dia !== today() ? ` em ${fmtDay(v.dia)}` : ""} · ${money(v.total)}${v.troco > 0 ? ` · troco ${money(v.troco)}` : ""}`);
@@ -1239,13 +1262,14 @@ async function exportExcel(){
 const ACT = {
   "add": d => { const c = S.cart.find(x => x.id === d.id); if (c) c.qtd++; else S.cart.push({id:d.id, qtd:1}); render(); },
   "inc": d => { const c = S.cart.find(x => x.id === d.id); if (c){ c.qtd++; render(); } },
-  "dec": d => { const c = S.cart.find(x => x.id === d.id); if (!c) return; c.qtd--; if (c.qtd <= 0) S.cart = S.cart.filter(x => x !== c); render(); },
-  "cart-clear": () => { S.cart = []; render(); },
+  "dec": d => { const c = S.cart.find(x => x.id === d.id); if (!c) return; c.qtd--; if (c.qtd <= 0) S.cart = S.cart.filter(x => x !== c); if (!S.cart.length) S.cartOpen = false; render(); },
+  "cart-clear": () => { S.cart = []; S.cartOpen = false; render(); },
   "retro-on": () => { S.retro = true; if (!S.retroDia) S.retroDia = isoDay(addDays(new Date(), -1)); render(); },
   "retro-off": () => { S.retro = false; render(); },
   "pay": d => { S.cartPag = d.k; render(); if (d.k === "dinheiro") setTimeout(() => $("#cart-recebido")?.focus(), 0); },
   "checkout": () => checkout(),
-  "goto-cart": () => $("#cart")?.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"}),
+  "goto-cart": () => { if (matchMedia("(max-width:900px)").matches){ S.cartOpen = true; render(); } else $("#cart")?.scrollIntoView({behavior:"smooth", block:"start"}); },
+  "cart-close": () => { S.cartOpen = false; render(); },
   "cat": d => { S.cat = d.k; render(); },
   "period": d => { S.period = {...S.period, key:d.k}; if (d.k === "custom" && !S.period.start){ const [a, b] = [isoDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), today()]; S.period.start = a; S.period.end = b; } prefSet("period", S.period); render(); refresh(); },
   "venda-cancel": d => cancelVenda(d.id),
@@ -1308,7 +1332,8 @@ document.addEventListener("change", e => {
   else if (id === "retro-hora"){ S.retroHora = e.target.value; render(); }
   else if (id === "p-start" || id === "p-end"){ S.period = {...S.period, key:"custom", start:$("#p-start").value, end:$("#p-end").value}; prefSet("period", S.period); render(); refresh(); }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modal-root").innerHTML) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if ($("#modal-root").innerHTML) closeModal(); else if (S.cartOpen){ S.cartOpen = false; render(); } });
+window.addEventListener("resize", () => { if (S.cartOpen) renderCartbar(); });
 
 /* ---------- início ---------- */
 render();
