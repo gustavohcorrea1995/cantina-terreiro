@@ -121,18 +121,31 @@ textarea.input{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,C
 .cart{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);display:flex;flex-direction:column;gap:14px}
 .cart .sheet-close{display:none}
 .sheet-bg{display:none}
-/* celular e tablet em pé: a venda abre como uma gaveta por cima dos produtos */
+/* celular e tablet em pé: resumo da venda fixo no topo; a venda completa desce de cima como uma gaveta */
+.cartstrip{display:none}
 @media (max-width:900px){
-  .pdv .cart{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:41;max-height:min(90vh, calc(100% - env(safe-area-inset-top,0px) - 24px));overflow-y:auto;overscroll-behavior:contain;
-    border-radius:18px 18px 0 0;border-bottom:0;box-shadow:0 -10px 40px rgba(0,0,0,.25);
-    padding:18px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));
-    transform:translateY(105%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}
+  .pdv .cart{position:fixed;left:0;right:0;top:0;bottom:auto;z-index:41;max-height:92vh;max-height:92dvh;overflow-y:auto;overscroll-behavior:contain;
+    border-radius:0 0 18px 18px;border-top:0;box-shadow:0 10px 40px rgba(0,0,0,.25);
+    padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));
+    transform:translateY(-105%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}
   .pdv .cart.open{transform:none;visibility:visible;transition:transform .22s ease}
   .cart .sheet-close{display:inline-flex}
   .cart .citems{max-height:none;overflow:visible}
-  .cart .finalizar{position:sticky;bottom:0;background:var(--surface);margin:0 -2px;padding:10px 2px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+  .cart .finalizar{position:sticky;bottom:0;background:var(--surface);margin:0 -2px;padding:10px 2px 14px;border-top:1px solid var(--line)}
   .sheet-bg{display:block;position:fixed;inset:0;z-index:40;background:rgba(10,20,15,.45)}
-  .pdv-tools{position:sticky;top:calc(env(safe-area-inset-top,0px) + 61px);z-index:15;background:var(--bg);padding-block:8px;margin-top:-8px}
+  .cartstrip{display:flex;flex-direction:column;gap:8px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 61px);z-index:16;
+    background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 10px 10px 14px;margin-bottom:12px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .cartstrip .cs-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .cartstrip .cs-medium{min-height:42px;padding:8px 10px;background:var(--surface);color:var(--ink);border-color:transparent;font-weight:600}
+  .cartstrip .cs-deve{font-size:.82rem;color:color-mix(in srgb, var(--danger) 55%, var(--bg))}
+  .cartstrip .info{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .cartstrip .tot{font-family:var(--f-display);font-size:1.4rem;font-weight:700}
+  .cartstrip .qt{font-size:.8rem;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cartstrip .btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);min-height:48px;padding-inline:18px;font-size:1rem;flex:none}
+  .cartstrip .cs-items{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-right:-4px}
+  .cartstrip .cs-items::-webkit-scrollbar{display:none}
+  .cs-chip{flex:none;display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb, var(--bg) 30%, transparent);background:transparent;color:var(--bg);border-radius:999px;padding:5px 6px 5px 11px;font-size:.84rem;font-weight:600;cursor:pointer;min-height:34px}
+  .cs-chip .x{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb, var(--bg) 18%, transparent);font-weight:700;line-height:1}
 }
 .cart h2{font-size:1.2rem}
 .citems{display:flex;flex-direction:column;gap:2px;max-height:38vh;overflow:auto}
@@ -491,8 +504,7 @@ function viewVender(){
     <div class="row" style="justify-content:space-between"><h2>Venda atual</h2><span class="row" style="gap:4px">${lines.length ? `<button class="btn sm ghost" data-act="cart-clear" type="button">Limpar</button>` : ""}<button class="btn sm sheet-close" data-act="cart-close" type="button">Fechar</button></span></div>
     <div class="field"><label for="cart-medium">Quem está comprando</label>
       <select class="input" id="cart-medium" data-keep="no">
-        <option value="">Consulente / visitante (avulso)</option>
-        ${meds.map(m => { const ap = /^Apelido:\s*(.+)$/i.exec(m.obs || ""); return `<option value="${m.id}" ${m.id === S.cartMedium ? "selected" : ""}>${esc(m.nome)}${ap && !norm(m.nome).startsWith(norm(ap[1])) ? ` (${esc(ap[1])})` : ""}</option>`; }).join("")}
+        ${opcoesMedium(meds)}
       </select>
       ${med && (Number(med.saldo)||0) > 0.004 ? `<span class="small" style="color:var(--danger)">Conta em aberto: <b class="num">${money(med.saldo)}</b></span>` : ""}
     </div>
@@ -520,7 +532,18 @@ function viewVender(){
     </tbody></table></div>` : `<div class="muted small">Nenhuma venda registrada hoje.</div>`}
   </section>`;
 
+  const medS = S.mediuns.find(m => m.id === S.cartMedium);
+  const devendo = medS && (Number(medS.saldo) || 0) > 0.004;
+  const strip = ativos.length ? `<div class="cartstrip" aria-label="Resumo da venda">
+      <select class="input cs-medium" id="strip-medium" data-keep="no" aria-label="Quem está comprando">${opcoesMedium(meds)}</select>
+      ${devendo ? `<span class="cs-deve">Conta em aberto: <b class="num">${money(medS.saldo)}</b></span>` : ""}
+      ${lines.length ? `<div class="cs-top"><span class="info"><span class="tot num">${money(total)}</span><span class="qt">${qfmt(lines.reduce((a, l) => a + l.qtd, 0))} item(ns)${S.retro && S.retroDia ? " · venda de " + fmtDayShort(S.retroDia) : ""}</span></span>
+      <button class="btn" data-act="goto-cart" type="button">Finalizar venda</button></div>
+      <div class="cs-items">${lines.map(l => `<button type="button" class="cs-chip" data-act="dec" data-id="${l.p.id}" aria-label="Tirar um ${esc(l.p.nome)}">${qfmt(l.qtd)}× ${esc(l.p.nome)}<span class="x" aria-hidden="true">−</span></button>`).join("")}</div>`
+      : `<span class="qt" style="opacity:.8;font-size:.85rem">Toque nos produtos para começar a venda.</span>`}
+    </div>` : "";
   return `<div class="pdv"><div class="pdv-prod">
+    ${strip}
     <div class="pdv-tools">
       <input class="input" id="pdv-search" type="search" placeholder="Buscar produto…" value="${esc(S.search)}" autocomplete="off">
       <div class="chips">${cats.map(c => `<button type="button" class="chip" data-act="cat" data-k="${esc(c)}" aria-pressed="${S.cat===c}">${esc(c)}</button>`).join("")}</div>
@@ -535,13 +558,16 @@ function retroBox(){
     <div class="grid2"><div class="field"><label for="retro-dia">Data da venda</label><input class="input" type="date" id="retro-dia" max="${isoDay(addDays(new Date(), -1))}" value="${esc(S.retroDia)}"></div>
     <div class="field"><label for="retro-hora">Hora (opcional)</label><input class="input" type="time" id="retro-hora" value="${esc(S.retroHora)}"></div></div></div>`;
 }
+function opcoesMedium(meds){
+  return `<option value="">Consulente / visitante (avulso)</option>` + meds.map(m => { const ap = /^Apelido:\s*(.+)$/i.exec(m.obs || ""); return `<option value="${m.id}" ${m.id === S.cartMedium ? "selected" : ""}>${esc(m.nome)}${ap && !norm(m.nome).startsWith(norm(ap[1])) ? ` (${esc(ap[1])})` : ""}</option>`; }).join("");
+}
 function itensResumo(v){ return (v.itens || []).map(i => `${qfmt(i.qtd)}× ${i.nome}`).join(", "); }
 function renderCartbar(){
   const el = $("#cartbar");
   const estreito = matchMedia("(max-width:900px)").matches;
   const aberto = S.tab === "vender" && S.cartOpen && S.cart.length && estreito;
   document.documentElement.style.overflow = aberto ? "hidden" : "";
-  if (S.tab !== "vender" || !S.cart.length || aberto){ el.innerHTML = ""; return; }
+  if (S.tab !== "vender" || !S.cart.length || aberto || estreito){ el.innerHTML = ""; return; }
   const {total, n} = cartTotals();
   const med = S.mediuns.find(m => m.id === S.cartMedium);
   el.innerHTML = `<div class="cartbar"><span class="info"><span class="tot num">${money(total)}</span><span class="qt">${qfmt(n)} item(ns)${med ? " · " + esc(med.nome.split(" ").slice(0, 2).join(" ")) : ""}</span></span><button class="btn" data-act="goto-cart" type="button">Finalizar venda</button></div>`;
@@ -1327,7 +1353,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => {
   const id = e.target.id;
-  if (id === "cart-medium"){ S.cartMedium = e.target.value; if (!S.cartMedium && S.cartPag === "conta") S.cartPag = "dinheiro"; render(); }
+  if (id === "cart-medium" || id === "strip-medium"){ S.cartMedium = e.target.value; if (!S.cartMedium && S.cartPag === "conta") S.cartPag = "dinheiro"; render(); }
   else if (id === "retro-dia"){ S.retroDia = e.target.value; render(); }
   else if (id === "retro-hora"){ S.retroHora = e.target.value; render(); }
   else if (id === "p-start" || id === "p-end"){ S.period = {...S.period, key:"custom", start:$("#p-start").value, end:$("#p-end").value}; prefSet("period", S.period); render(); refresh(); }
