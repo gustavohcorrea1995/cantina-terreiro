@@ -27744,7 +27744,7 @@ CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
       let fim = isDia(req.query.fim) ? req.query.fim : hoje;
       if (inicio > fim) [inicio, fim] = [fim, inicio];
       const mref = isRef(req.query.mref) ? req.query.mref : hoje.slice(0, 7);
-      const [ver, prods, meds, cfg, vendas, vendasHoje, movs, desp, pags, mens] = await Promise.all([
+      const [ver, prods, meds, cfg, vendas, vendasHoje, movs, desp, pags, mens, mensHist] = await Promise.all([
         pool.query("SELECT versao FROM meta WHERE id = 1"),
         pool.query("SELECT * FROM produtos ORDER BY nome"),
         pool.query("SELECT * FROM mediuns ORDER BY nome"),
@@ -27754,7 +27754,9 @@ CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
         pool.query("SELECT * FROM movimentos WHERE dia BETWEEN $1 AND $2 ORDER BY data DESC LIMIT 5000", [inicio, fim]),
         pool.query("SELECT * FROM despesas WHERE dia BETWEEN $1 AND $2 ORDER BY dia DESC, data DESC LIMIT 5000", [inicio, fim]),
         pool.query("SELECT * FROM pagamentos WHERE dia BETWEEN $1 AND $2 ORDER BY data DESC LIMIT 5000", [inicio, fim]),
-        pool.query("SELECT * FROM mensalidades WHERE referencia = $1", [mref])
+        pool.query("SELECT * FROM mensalidades WHERE referencia = $1", [mref]),
+        // histórico resumido de todas as mensalidades, para somar as que estão em aberto
+        pool.query("SELECT medium_id, referencia, status FROM mensalidades")
       ]);
       versaoMem = Number(ver.rows[0]?.versao || 0);
       res.set("Cache-Control", "no-store");
@@ -27772,7 +27774,8 @@ CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
         despesas: rows(desp),
         pagamentos: rows(pags),
         mref,
-        mensalidades: rows(mens)
+        mensalidades: rows(mens),
+        mensHist: rows(mensHist)
       });
     }));
     app2.get("/api/mediuns/:id/extrato", h(async (req, res) => {
@@ -28013,9 +28016,16 @@ CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
         const m = (await c.query("SELECT * FROM mediuns WHERE id = $1 FOR UPDATE", [b.mediumId])).rows[0];
         if (!m) throw new Erro("M\xE9dium n\xE3o encontrado.", 404);
         const v = r2(b.valor);
+        const hoje = agoraBR().dia;
+        let dia = hoje, data = (/* @__PURE__ */ new Date()).toISOString();
+        if (b.dia && b.dia !== hoje) {
+          if (!isDia(b.dia) || b.dia > hoje || b.dia < "2020-01-01") throw new Erro("Data do pagamento inv\xE1lida.");
+          dia = b.dia;
+          data = (/* @__PURE__ */ new Date(`${dia}T12:00:00-03:00`)).toISOString();
+        }
         await c.query(
-          "INSERT INTO pagamentos (id, dia, medium_id, medium_nome, valor, forma, obs) VALUES ($1,$2,$3,$4,$5,$6,$7)",
-          [id(), agoraBR().dia, m.id, m.nome, v, b.forma, txt(b.obs, 200)]
+          "INSERT INTO pagamentos (id, data, dia, medium_id, medium_nome, valor, forma, obs) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+          [id(), data, dia, m.id, m.nome, v, b.forma, txt(b.obs, 200)]
         );
         await c.query("UPDATE mediuns SET saldo = saldo - $2 WHERE id = $1", [m.id, v]);
       });

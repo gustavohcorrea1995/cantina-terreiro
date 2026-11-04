@@ -215,7 +215,7 @@ app.get("/api/estado", h(async (req, res) => {
   let fim = isDia(req.query.fim) ? req.query.fim : hoje;
   if (inicio > fim) [inicio, fim] = [fim, inicio];
   const mref = isRef(req.query.mref) ? req.query.mref : hoje.slice(0, 7);
-  const [ver, prods, meds, cfg, vendas, vendasHoje, movs, desp, pags, mens] = await Promise.all([
+  const [ver, prods, meds, cfg, vendas, vendasHoje, movs, desp, pags, mens, mensHist] = await Promise.all([
     pool.query("SELECT versao FROM meta WHERE id = 1"),
     pool.query("SELECT * FROM produtos ORDER BY nome"),
     pool.query("SELECT * FROM mediuns ORDER BY nome"),
@@ -226,6 +226,8 @@ app.get("/api/estado", h(async (req, res) => {
     pool.query("SELECT * FROM despesas WHERE dia BETWEEN $1 AND $2 ORDER BY dia DESC, data DESC LIMIT 5000", [inicio, fim]),
     pool.query("SELECT * FROM pagamentos WHERE dia BETWEEN $1 AND $2 ORDER BY data DESC LIMIT 5000", [inicio, fim]),
     pool.query("SELECT * FROM mensalidades WHERE referencia = $1", [mref]),
+    // histórico resumido de todas as mensalidades, para somar as que estão em aberto
+    pool.query("SELECT medium_id, referencia, status FROM mensalidades"),
   ]);
   versaoMem = Number(ver.rows[0]?.versao || 0);
   res.set("Cache-Control", "no-store");
@@ -233,7 +235,7 @@ app.get("/api/estado", h(async (req, res) => {
     versao: versaoMem, hoje, inicio, fim,
     produtos: rows(prods), mediuns: rows(meds), config: cfg.rows[0]?.valor || {},
     vendas: rows(vendas), vendasHoje: rows(vendasHoje), movs: rows(movs), despesas: rows(desp), pagamentos: rows(pags),
-    mref, mensalidades: rows(mens),
+    mref, mensalidades: rows(mens), mensHist: rows(mensHist),
   });
 }));
 app.get("/api/mediuns/:id/extrato", h(async (req, res) => {
@@ -455,8 +457,16 @@ app.post("/api/pagamentos", h(async (req, res) => {
     const m = (await c.query("SELECT * FROM mediuns WHERE id = $1 FOR UPDATE", [b.mediumId])).rows[0];
     if (!m) throw new Erro("Médium não encontrado.", 404);
     const v = r2(b.valor);
-    await c.query("INSERT INTO pagamentos (id, dia, medium_id, medium_nome, valor, forma, obs) VALUES ($1,$2,$3,$4,$5,$6,$7)",
-      [id(), agoraBR().dia, m.id, m.nome, v, b.forma, txt(b.obs, 200)]);
+    // data do pagamento escolhida pelo usuário (padrão hoje), nunca no futuro
+    const hoje = agoraBR().dia;
+    let dia = hoje, data = new Date().toISOString();
+    if (b.dia && b.dia !== hoje) {
+      if (!isDia(b.dia) || b.dia > hoje || b.dia < "2020-01-01") throw new Erro("Data do pagamento inválida.");
+      dia = b.dia;
+      data = new Date(`${dia}T12:00:00-03:00`).toISOString();
+    }
+    await c.query("INSERT INTO pagamentos (id, data, dia, medium_id, medium_nome, valor, forma, obs) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+      [id(), data, dia, m.id, m.nome, v, b.forma, txt(b.obs, 200)]);
     await c.query("UPDATE mediuns SET saldo = saldo - $2 WHERE id = $1", [m.id, v]);
   });
   res.json({ ok: true });

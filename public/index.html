@@ -324,7 +324,7 @@ const S = {
   period: prefGet("period", {key:"mes", start:"", end:""}),
   periodTruncated: false,
   cart: [], cartMedium: "", cartPag: "dinheiro", retro: false, retroDia: "", retroHora: "",
-  mRef: isoDay(new Date()).slice(0, 7), mensalidades: [], mFiltro: "todos", menBusca: "",
+  mRef: isoDay(new Date()).slice(0, 7), mensalidades: [], mensHist: [], mFiltro: "todos", menBusca: "",
   search: "", cat: "Todas", vendasBusca: "", mBusca: "", eBusca: "",
   canWrite: true, noDb: false, connected: false,
 };
@@ -396,6 +396,7 @@ async function refresh(){
     S.produtos = j.produtos; S.mediuns = j.mediuns; S.config = j.config || {};
     S.vendas = j.vendas; S.vendasHoje = j.vendasHoje; S.movs = j.movs; S.despesas = j.despesas; S.pagamentos = j.pagamentos;
     if (j.mref === S.mRef) S.mensalidades = j.mensalidades || [];
+    S.mensHist = j.mensHist || [];
     S.periodTruncated = j.vendas.length >= 20000;
     S.loaded.produtos = S.loaded.mediuns = true;
     setStatus("ok"); schedule();
@@ -730,6 +731,30 @@ function computeBalance(){
   B.estVenda = S.produtos.reduce((a, p) => a + Math.max(0, Number(p.estoque)||0) * (Number(p.preco)||0), 0);
   return B;
 }
+/* dívidas dos médiuns: fiado da cantina (saldo de hoje) + mensalidades não pagas desde o início do controle até o mês atual */
+const refCurta = ref => { const [y, m] = ref.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {month:"short"}).replace(".", "") + "/" + String(y).slice(2); };
+function computeDividas(){
+  const atual = (S.serverHoje || today()).slice(0, 7);
+  const inicio = S.mensHist.reduce((a, x) => x.referencia < a ? x.referencia : a, atual);
+  const feitos = new Set(S.mensHist.map(x => x.mediumId + "|" + x.referencia));
+  const vm = valorMens();
+  const meses = [];
+  for (let d = parseDay(inicio + "-01"); isoDay(d).slice(0, 7) <= atual; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) meses.push(isoDay(d).slice(0, 7));
+  const lista = [];
+  for (const m of S.mediuns){
+    const fiado = Math.max(0, Number(m.saldo) || 0);
+    let pend = [];
+    if (m.mensalidade !== false && m.ativo !== false){
+      const desde = m.criadoEm ? isoDay(new Date(m.criadoEm)).slice(0, 7) : inicio;
+      pend = meses.filter(r => r >= desde && !feitos.has(m.id + "|" + r));
+    }
+    const mens = r2(pend.length * vm);
+    if (fiado > 0.004 || pend.length) lista.push({id: m.id, nome: m.nome, fiado: r2(fiado), pend, mens, total: r2(fiado + mens)});
+  }
+  lista.sort((a, b) => b.total - a.total || byName(a, b));
+  const fiado = r2(lista.reduce((a, x) => a + x.fiado, 0)), mens = r2(lista.reduce((a, x) => a + x.mens, 0));
+  return {lista, fiado, mens, total: r2(fiado + mens), nMeses: lista.reduce((a, x) => a + x.pend.length, 0), inicio, atual};
+}
 function chartSvg(B){
   const [s, e] = periodRange();
   let pts = [];
@@ -760,6 +785,7 @@ function chartSvg(B){
 }
 function viewBalanco(){
   const B = computeBalance();
+  const D = computeDividas();
   const prods = [...B.porProduto.values()].sort((a,b) => b.fat - a.fat);
   const maxFat = Math.max(1, ...prods.map(p => p.fat));
   const meds = [...B.porMedium.entries()].map(([id, m]) => ({id, ...m})).sort((a,b) => b.total - a.total);
@@ -773,7 +799,20 @@ function viewBalanco(){
       <div class="kpi"><div class="k">Custo dos produtos vendidos</div><div class="v num">${money(B.cmv)}</div><div class="d">pelo custo de cada item na hora da venda</div></div>
       <div class="kpi hero"><div class="k">Lucro bruto</div><div class="v num">${money(B.lucro)}</div><div class="d">margem de ${pct(B.margem)}</div></div>
       <div class="kpi ${B.resultado < 0 ? "neg" : ""}"><div class="k">Resultado líquido</div><div class="v num">${money(B.resultado)}</div><div class="d">lucro − despesas ${B.ajustes ? "− perdas" : ""}</div></div>
-      <div class="kpi ${B.aberto > 0 ? "neg" : ""}"><div class="k">Fiado a receber</div><div class="v num">${money(B.aberto)}</div><div class="d">total em aberto hoje</div></div>
+      <div class="kpi ${D.total > 0 ? "neg" : ""}"><div class="k">Dívidas dos médiuns</div><div class="v num">${money(D.total)}</div><div class="d">fiado ${money(D.fiado)} + mensalidades ${money(D.mens)}</div></div>
+    </div>
+    <div class="panel" id="dividas">
+      <div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:1.05rem">Dívidas dos médiuns</h3>
+        <div class="small muted">Posição de hoje, independente do período · mensalidades em aberto de ${esc(refCurta(D.inicio))} a ${esc(refCurta(D.atual))}, a ${money(valorMens())} cada</div></div></div>
+      <div class="kpis" style="margin-bottom:12px">
+        <div class="kpi"><div class="k">Fiado da cantina</div><div class="v num">${money(D.fiado)}</div><div class="d">${D.lista.filter(x => x.fiado > 0.004).length} médium(ns) devendo</div></div>
+        <div class="kpi"><div class="k">Mensalidades em aberto</div><div class="v num">${money(D.mens)}</div><div class="d">${D.nMeses} mensalidade(s) · ${D.lista.filter(x => x.pend.length).length} médium(ns)</div></div>
+        <div class="kpi hero"><div class="k">Total a receber</div><div class="v num">${money(D.total)}</div><div class="d">fiado + mensalidades</div></div>
+      </div>
+      ${D.lista.length ? `<div class="tablewrap" style="border:0"><table><thead><tr><th>Médium</th><th class="r">Fiado</th><th class="r">Mensalidades</th><th class="r">Total</th></tr></thead><tbody>
+        ${D.lista.map(x => `<tr class="click" data-act="med-open" data-id="${x.id}"><td>${esc(x.nome)}</td><td class="r num">${x.fiado > 0.004 ? money(x.fiado) : "—"}</td><td class="r num">${x.pend.length ? `${money(x.mens)}<div class="small muted">${x.pend.map(refCurta).join(", ")}</div>` : "—"}</td><td class="r num"><b>${money(x.total)}</b></td></tr>`).join("")}
+        <tr><td><b>Total</b></td><td class="r num"><b>${money(D.fiado)}</b></td><td class="r num"><b>${money(D.mens)}</b></td><td class="r num"><b>${money(D.total)}</b></td></tr>
+      </tbody></table></div>` : `<div class="muted small">Nenhum médium devendo. Tudo em dia!</div>`}
     </div>
     <div class="panel"><div class="section-head" style="margin-bottom:6px"><h3 style="font-size:1.05rem">Faturamento ${Math.round((parseDay(periodRange()[1]) - parseDay(periodRange()[0])) / 864e5) + 1 <= 62 ? "por dia" : "por mês"}</h3></div>${chartSvg(B) || `<div class="muted small">Escolha um período com mais de um dia para ver o gráfico.</div>`}</div>
     <div class="cols2">
@@ -1122,9 +1161,10 @@ async function mediumOpen(id){
     body: `<div id="md-live"></div>
       <div class="panel"><h3 style="font-size:1rem;margin-bottom:10px">Receber fiado</h3>
         <div class="grid3"><div class="field"><label for="pg-valor">Valor</label><input class="input num" id="pg-valor" name="valor" inputmode="decimal" placeholder="0,00"></div>
-        <div class="field"><label for="pg-forma">Forma</label><select class="input" id="pg-forma" name="forma">${PAG_CAIXA.map(k => `<option value="${k}">${PAG[k]}</option>`).join("")}</select></div>
-        <div class="field"><span class="lbl">&nbsp;</span><button type="submit" class="btn primary">Registrar pagamento</button></div></div>
-        <div class="field" style="margin-top:10px"><label for="pg-obs">Observação</label><input class="input" id="pg-obs" name="obs" placeholder="Opcional"></div>
+        <div class="field"><label for="pg-dia">Data do pagamento</label><input class="input" type="date" id="pg-dia" name="dia" value="${today()}" max="${today()}"></div>
+        <div class="field"><label for="pg-forma">Forma</label><select class="input" id="pg-forma" name="forma">${PAG_CAIXA.map(k => `<option value="${k}">${PAG[k]}</option>`).join("")}</select></div></div>
+        <div class="grid2" style="margin-top:10px;align-items:end"><div class="field"><label for="pg-obs">Observação</label><input class="input" id="pg-obs" name="obs" placeholder="Opcional"></div>
+        <button type="submit" class="btn primary">Registrar pagamento</button></div>
       </div>
       <div><h3 style="font-size:1rem;margin-bottom:8px">Extrato</h3><div id="md-extrato" class="muted small">Carregando…</div></div>`,
     foot: `<button type="button" class="btn danger" data-act="med-del" data-id="${id}" style="margin-right:auto">Excluir</button><button type="button" class="btn" data-act="med-acerto" data-id="${id}">Acertar saldo</button><button type="button" class="btn" data-act="med-edit" data-id="${id}">Editar dados</button><button type="button" class="btn ghost" data-act="modal-close">Fechar</button>`,
@@ -1132,10 +1172,12 @@ async function mediumOpen(id){
       if (!guardWrite()) return;
       const m = S.mediuns.find(x => x.id === id); const v = num(fd.get("valor"));
       if (!isFinite(v) || v <= 0){ toast("Informe o valor recebido.", true); return; }
+      const dia = String(fd.get("dia") || "") || today();
+      if (dia > today()){ toast("A data do pagamento não pode ser no futuro.", true); return; }
       try {
-        await mut("POST", "/api/pagamentos", {mediumId: id, valor: r2(v), forma: fd.get("forma"), obs: String(fd.get("obs") || "").trim()});
-        $("#pg-valor").value = ""; $("#pg-obs").value = "";
-        toast(`Pagamento de ${money(v)} registrado`); load();
+        await mut("POST", "/api/pagamentos", {mediumId: id, valor: r2(v), dia, forma: fd.get("forma"), obs: String(fd.get("obs") || "").trim()});
+        $("#pg-valor").value = ""; $("#pg-obs").value = ""; $("#pg-dia").value = today();
+        toast(`Pagamento de ${money(v)} registrado em ${fmtDay(dia)}`); load();
       } catch (e){ toast(dbErr(e), true); }
     },
     live: () => {
@@ -1233,7 +1275,7 @@ async function exportExcel(){
   const btn = $('[data-act="export"]'); if (btn){ btn.disabled = true; btn.textContent = "Gerando planilha…"; }
   try { await loadXLSX(); }
   catch { toast("Não foi possível carregar o gerador de planilhas. Verifique a internet.", true); if (btn){ btn.disabled = false; btn.textContent = "Exportar para Excel"; } return; }
-  const X = window.XLSX; const B = computeBalance(); const [s, e] = periodRange();
+  const X = window.XLSX; const B = computeBalance(); const D = computeDividas(); const [s, e] = periodRange();
   const wb = X.utils.book_new();
   // Resumo
   const resumo = [
@@ -1242,7 +1284,8 @@ async function exportExcel(){
     ["Perdas e ajustes de estoque", r2(B.ajustes)], ["Outras despesas", r2(B.despesas)], ["Resultado líquido", r2(B.resultado)], ["", ""],
     ["CAIXA", ""], ...PAG_CAIXA.map(k => ["Vendas · " + PAG[k], r2(B.forma[k])]), ...(B.forma.cartao ? [["Vendas · Cartão", r2(B.forma.cartao)]] : []), ["Vendido fiado", r2(B.forma.conta)],
     ["Fiado recebido", r2(B.recebConta)], ["Compras de mercadoria", r2(B.compras)], ["Saldo de caixa", r2(B.saldoCaixa)], ["", ""],
-    ["POSIÇÃO ATUAL", ""], ["Fiado a receber dos médiuns", r2(B.aberto)], ["Estoque a preço de custo", r2(B.estCusto)], ["Estoque a preço de venda", r2(B.estVenda)],
+    ["POSIÇÃO ATUAL", ""], ["Fiado a receber dos médiuns", r2(D.fiado)], ["Mensalidades em aberto", r2(D.mens)], ["Total de dívidas dos médiuns", r2(D.total)],
+    ["Estoque a preço de custo", r2(B.estCusto)], ["Estoque a preço de venda", r2(B.estVenda)],
   ];
   const wsR = X.utils.aoa_to_sheet(resumo);
   resumo.forEach((row, r) => { const c = wsR[X.utils.encode_cell({r, c:1})]; if (c && c.t === "n") c.z = row[0] === "Margem bruta" ? FMT.pct : row[0] === "Número de vendas" ? FMT.int : FMT.money; });
@@ -1267,6 +1310,10 @@ async function exportExcel(){
   for (const [id, x] of B.porMedium) if (!mm.has(id)) pm2.push([x.nome + " (excluído)", "", x.n, r2(x.total), r2(x.pago), r2(x.conta), 0, "Excluído"]);
   if (B.avulso.n) pm2.push(["Consulentes / avulso", "", B.avulso.n, r2(B.avulso.total), r2(B.avulso.total), 0, 0, ""]);
   X.utils.book_append_sheet(wb, mkSheet(["Médium","Telefone","Nº de compras","Total comprado","Pago na hora","Fiado","Fiado em aberto (hoje)","Situação"], pm2, {2:"int",3:"money",4:"money",5:"money",6:"money"}, [28,18,13,15,14,12,20,10]), "Por médium");
+  // Dívidas (posição de hoje)
+  const dv = D.lista.map(x => [x.nome, x.fiado, x.pend.length, x.pend.map(refCurta).join(", "), x.mens, x.total]);
+  if (dv.length) dv.push(["TOTAL", D.fiado, D.nMeses, "", D.mens, D.total]);
+  X.utils.book_append_sheet(wb, mkSheet(["Médium","Fiado da cantina","Mensalidades em aberto","Meses","Valor das mensalidades","Total devido"], dv, {1:"money",2:"int",4:"money",5:"money"}, [28,16,12,24,18,14]), "Dívidas");
   // Estoque
   const est = [...S.produtos].sort(byName).map(p => { const c = Number(p.custo)||0, pr = Number(p.preco)||0, q = Number(p.estoque)||0, mn = Number(p.estoqueMinimo)||0;
     return [p.nome, p.categoria || "", p.unidade || "un", c, pr, pr ? (pr - c) / pr : 0, q, mn, q <= 0 ? "Sem estoque" : (mn && q <= mn ? "Repor" : "OK"), r2(Math.max(0,q) * c), r2(Math.max(0,q) * pr), p.ativo === false ? "Não" : "Sim"]; });
