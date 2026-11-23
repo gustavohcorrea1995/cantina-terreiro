@@ -1,7 +1,7 @@
-# Netlify: a tela fica em public/ e a API roda na função netlify/functions/api.mjs
+# Netlify: a tela fica em public/ e a API é montada a partir do código-fonte antes do deploy.
 [build]
   publish = "public"
-  command = "echo 'sem etapa de build'"
+  command = "npm run montar:netlify"
 
 [functions]
   node_bundler = "esbuild"
