@@ -442,6 +442,17 @@ app.post("/api/mediuns/importar", h(async (req, res) => {
   });
   res.json(r);
 }));
+// preenche ou limpa o aniversário de vários médiuns de uma vez (tela "Aniversários")
+app.post("/api/mediuns/aniversarios", h(async (req, res) => {
+  const itens = Array.isArray(req.body?.itens) ? req.body.itens.slice(0, 500) : [];
+  const lote = itens.map(i => ({ id: txt(i?.id, 40), aniv: validaAniv(i?.aniversario || null) })).filter(i => i.id);
+  const n = await tx(async c => {
+    let n = 0;
+    for (const i of lote) n += (await c.query("UPDATE mediuns SET aniversario = $2 WHERE id = $1", [i.id, i.aniv])).rowCount;
+    return n;
+  });
+  res.json({ n });
+}));
 app.put("/api/mediuns/:id", h(async (req, res) => {
   const d = dadosMedium(req.body || {});
   const r = await tx(async c => {

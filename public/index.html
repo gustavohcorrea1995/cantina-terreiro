@@ -295,6 +295,32 @@ const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate()
 const parseDay = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
 const fmtDay = s => { if (!s) return ""; const [y,m,d] = s.split("-"); return `${d}/${m}/${y}`; };
 const fmtDayShort = s => { const [,m,d] = s.split("-"); return `${d}/${m}`; };
+const fmtAniv = s => s ? fmtDayShort(s) : "";
+const MESES_ABR = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+// dois seletores (dia e mês): o ano não é necessário
+function anivSelects(prefix, iso, estilo = ""){
+  const [, mm, dd] = iso ? iso.split("-").map(Number) : [0, 0, 0];
+  const st = estilo ? ` style="${estilo}"` : "";
+  return `<select class="input" name="${prefix}d" aria-label="Dia"${st}><option value="">Dia</option>${Array.from({length: 31}, (_, i) => `<option value="${i + 1}" ${dd === i + 1 ? "selected" : ""}>${i + 1}</option>`).join("")}</select>`
+    + `<select class="input" name="${prefix}m" aria-label="Mês"${st}><option value="">Mês</option>${MESES_ABR.map((n, i) => `<option value="${i + 1}" ${mm === i + 1 ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+}
+// lê os dois seletores; vazio+vazio = sem aniversário; se dia/mês não mudaram, mantém a data original
+function anivLer(fd, prefix, orig){
+  const d = Number(fd.get(prefix + "d") || 0), m = Number(fd.get(prefix + "m") || 0);
+  if (!d && !m) return {ok: true, iso: null};
+  if (!d || !m) return {ok: false};
+  const iso = `2000-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const t = new Date(iso + "T00:00:00Z"); if (isNaN(t) || t.toISOString().slice(0, 10) !== iso) return {ok: false};
+  return {ok: true, iso: orig && orig.slice(5) === iso.slice(5) ? orig : iso};
+}
+// dias até o próximo aniversário (0 = hoje); 29/02 comemora em 28/02 nos anos não bissextos
+function diasParaAniv(aniv, hojeStr){
+  const [, mm, dd] = aniv.split("-").map(Number); const [y, hm, hd] = hojeStr.split("-").map(Number);
+  const alvo = ano => { const bis = ano % 4 === 0 && (ano % 100 !== 0 || ano % 400 === 0); return Date.UTC(ano, mm - 1, mm === 2 && dd === 29 && !bis ? 28 : dd); };
+  const base = Date.UTC(y, hm - 1, hd);
+  let t = alvo(y); if (t < base) t = alvo(y + 1);
+  return Math.round((t - base) / 864e5);
+}
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const today = () => isoDay(new Date());
 const nowHora = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -549,8 +575,11 @@ function viewVender(){
       <div class="cs-items">${lines.map(l => `<button type="button" class="cs-chip" data-act="dec" data-id="${l.p.id}" aria-label="Tirar um ${esc(l.p.nome)}">${qfmt(l.qtd)}× ${esc(l.p.nome)}<span class="x" aria-hidden="true">−</span></button>`).join("")}</div>`
       : `<span class="qt" style="opacity:.8;font-size:.85rem">Toque nos produtos para começar a venda.</span>`}
     </div>` : "";
+  const aniHoje = S.mediuns.filter(m => m.ativo !== false && m.aniversario && diasParaAniv(m.aniversario, today()) === 0).sort(byName);
+  const bannerAniv = aniHoje.length ? `<div class="panel" style="margin-bottom:10px;padding:10px 14px;border-color:var(--accent)">🎉 <b>Aniversário hoje:</b> ${aniHoje.map(m => esc(m.nome)).join(", ")}</div>` : "";
   return `<div class="pdv"><div class="pdv-prod">
     ${strip}
+    ${bannerAniv}
     <div class="pdv-tools">
       <input class="input" id="pdv-search" type="search" placeholder="Buscar produto…" value="${esc(S.search)}" autocomplete="off">
       <div class="chips">${cats.map(c => `<button type="button" class="chip" data-act="cat" data-k="${esc(c)}" aria-pressed="${S.cat===c}">${esc(c)}</button>`).join("")}</div>
@@ -640,6 +669,19 @@ function cancelVenda(id){
 }
 
 /* ----- Médiuns ----- */
+function painelAniversarios(){
+  const hj = today();
+  const prox = S.mediuns.filter(m => m.ativo !== false && m.aniversario).map(m => ({m, dias: diasParaAniv(m.aniversario, hj)}))
+    .filter(x => x.dias <= 30).sort((a, b) => a.dias - b.dias || byName(a.m, b.m));
+  const sem = S.mediuns.filter(m => m.ativo !== false && !m.aniversario).length;
+  const algum = S.mediuns.some(m => m.aniversario);
+  if (!prox.length && !sem) return "";
+  const rot = d => d === 0 ? "hoje 🎉" : d === 1 ? "amanhã" : `em ${d} dias`;
+  return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><b>🎂 Aniversariantes dos próximos 30 dias</b>${sem ? `<button type="button" class="btn sm" data-act="med-aniv">Preencher aniversários</button>` : ""}</div>
+    ${prox.length ? `<div class="chips" style="margin-top:8px">${prox.map(x => `<button type="button" class="chip" data-act="med-open" data-id="${x.m.id}" style="${x.dias === 0 ? "border-color:var(--accent);color:var(--accent)" : ""}">${esc(x.m.nome)} · ${fmtAniv(x.m.aniversario)} (${rot(x.dias)})</button>`).join("")}</div>`
+      : `<div class="muted small" style="margin-top:6px">${algum ? "Ninguém faz aniversário nos próximos 30 dias." : "Ainda não há aniversários cadastrados."}</div>`}
+    ${sem && algum ? `<div class="muted small" style="margin-top:8px">${sem} médium(ns) ativo(s) ainda sem data de aniversário.</div>` : ""}</div>`;
+}
 function viewMediuns(){
   const q = norm(S.mBusca);
   const comprado = new Map();
@@ -650,13 +692,14 @@ function viewMediuns(){
   const aberto = S.mediuns.reduce((a, m) => a + Math.max(0, Number(m.saldo)||0), 0);
   const devedores = S.mediuns.filter(m => (Number(m.saldo)||0) > 0.004).length;
   return `<div class="section-head"><div><h2>Médiuns</h2><div class="muted small">${S.mediuns.filter(m=>m.ativo!==false).length} ativo(s) · Fiado em aberto: <b class="num" style="color:${aberto>0?"var(--danger)":"inherit"}">${money(aberto)}</b> (${devedores} pessoa(s))</div></div>
-    <div class="row"><button class="btn" data-act="med-import" type="button">Adicionar vários</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>
+    <div class="row"><button class="btn" data-act="med-aniv" type="button">🎂 Aniversários</button><button class="btn" data-act="med-import" type="button">Adicionar vários</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>
   <div class="row" style="margin-bottom:12px;justify-content:space-between">
     <div class="chips"><button type="button" class="chip" data-act="mfiado" data-k="0" aria-pressed="${!S.mFiado}">Todos</button><button type="button" class="chip" data-act="mfiado" data-k="1" aria-pressed="${!!S.mFiado}">Com fiado em aberto · ${devedores}</button></div>
     <input class="input" id="m-busca" type="search" placeholder="Buscar médium…" value="${esc(S.mBusca)}" style="max-width:320px"></div>
+  ${painelAniversarios()}
   ${!S.mediuns.length ? `<div class="panel empty"><strong>Nenhum médium cadastrado</strong><span>Cadastre um por um ou cole a lista inteira de nomes de uma vez.</span><div class="row"><button class="btn" data-act="med-import" type="button">Colar lista de nomes</button><button class="btn primary" data-act="med-new" type="button">Novo médium</button></div></div>`
   : `<div class="mlist">${list.map(m => { const sd = Number(m.saldo)||0; return `<button type="button" class="mcard ${m.ativo===false?"off":""}" data-act="med-open" data-id="${m.id}">
-      <span class="row" style="flex-wrap:nowrap;min-width:0"><span class="avatar">${esc(initials(m.nome))}</span><span style="min-width:0"><span class="mn">${esc(m.nome)}</span><br><span class="small muted num">${comprado.get(m.id) ? `Comprou ${money(comprado.get(m.id))} no período` : (m.telefone ? esc(m.telefone) : (m.ativo===false ? "Inativo" : "Sem compras no período"))}</span></span></span>
+      <span class="row" style="flex-wrap:nowrap;min-width:0"><span class="avatar">${esc(initials(m.nome))}</span><span style="min-width:0"><span class="mn">${esc(m.nome)}</span><br>${m.aniversario ? `<span class="small num" style="color:var(--accent);font-weight:600">🎂 ${fmtAniv(m.aniversario)}</span>` : `<span class="small muted">🎂 sem data</span>`}<br><span class="small muted num">${comprado.get(m.id) ? `Comprou ${money(comprado.get(m.id))} no período` : (m.telefone ? esc(m.telefone) : (m.ativo===false ? "Inativo" : "Sem compras no período"))}</span></span></span>
       ${sd > 0.004 ? `<span class="pill danger num">Fiado ${money(sd)}</span>` : sd < -0.004 ? `<span class="pill ok num">Crédito ${money(-sd)}</span>` : `<span class="pill ok">Em dia</span>`}
     </button>`; }).join("")}</div>`}
   <p class="muted small" style="margin-top:14px">Comprado no período: ${periodLabel()} (mude o período em Vendas ou Relatórios).</p>`;
@@ -954,8 +997,7 @@ async function exportMensalidades(){
     X.utils.book_append_sheet(wb, mkSheet(["Médium", "Situação", "Valor pago", "Data do pagamento", "Forma", "Observação"], linhasMes, {2: "money", 3: "date"}, [34, 11, 12, 17, 10, 28]), nomeMes.slice(0, 31).replace(/[\\/?*\[\]:]/g, ""));
     const out = X.write(wb, {bookType: "xlsx", type: "array"});
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})); a.download = `mensalidades_${ano}.xlsx`;
-    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-    toast("Planilha baixada");
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);    toast("Planilha baixada");
   } catch (e){ toast(dbErr(e) || "Não foi possível gerar a planilha.", true); }
   finally { if (btn){ btn.disabled = false; btn.textContent = "Exportar ano para Excel"; } }
 }
@@ -1113,6 +1155,7 @@ function mediumForm(m){
     title: isNew ? "Novo médium" : "Editar médium",
     body: `<div class="field"><label for="m-nome">Nome</label><input class="input" id="m-nome" name="nome" required value="${esc(m.nome)}"></div>
       <div class="field"><label for="m-tel">Telefone / WhatsApp</label><input class="input" id="m-tel" name="telefone" inputmode="tel" value="${esc(m.telefone)}" placeholder="(11) 90000-0000"></div>
+      <div class="field"><label>Aniversário</label><div class="row" style="gap:8px;flex-wrap:nowrap">${anivSelects("a_", m.aniversario, "flex:1;min-width:0")}</div><div class="muted small">Só o dia e o mês. Deixe os dois vazios se não souber.</div></div>
       <div class="field"><label for="m-obs">Observação</label><input class="input" id="m-obs" name="obs" value="${esc(m.obs)}" placeholder="Ex.: corrente de quarta, cambone"></div>
       <label class="row small" style="gap:8px"><input type="checkbox" name="ativo" ${m.ativo !== false ? "checked" : ""} style="width:20px;height:20px"> Ativo (aparece na lista de compradores)</label>
       <label class="row small" style="gap:8px"><input type="checkbox" name="mensalidade" ${m.mensalidade !== false ? "checked" : ""} style="width:20px;height:20px"> Paga mensalidade (aparece na aba Mensalidades)</label>`,
@@ -1120,7 +1163,8 @@ function mediumForm(m){
     onSubmit: async fd => {
       if (!guardWrite()) return;
       const nome = String(fd.get("nome") || "").trim(); if (!nome){ toast("Informe o nome.", true); return; }
-      const data = {nome, telefone:String(fd.get("telefone") || "").trim(), obs:String(fd.get("obs") || "").trim(), ativo: fd.get("ativo") === "on", mensalidade: fd.get("mensalidade") === "on"};
+      const an = anivLer(fd, "a_", m.aniversario); if (!an.ok){ toast("Escolha o dia e o mês do aniversário, ou deixe os dois vazios.", true); return; }
+      const data = {nome, telefone:String(fd.get("telefone") || "").trim(), obs:String(fd.get("obs") || "").trim(), ativo: fd.get("ativo") === "on", mensalidade: fd.get("mensalidade") === "on", aniversario: an.iso};
       try {
         if (isNew) await mut("POST", "/api/mediuns", data);
         else await mut("PUT", "/api/mediuns/" + m.id, data);
@@ -1129,19 +1173,70 @@ function mediumForm(m){
     }
   });
 }
+function mediumAnivs(){
+  const lista = [...S.mediuns].sort((a, b) => (a.ativo === false) - (b.ativo === false) || byName(a, b));
+  const pre = m => "x" + m.id + ":";
+  openModal({
+    title: "Aniversários dos médiuns", wide: true,
+    body: `<p class="muted small" style="margin:0">Escolha o dia e o mês de cada médium e toque em <b>Salvar</b>. Só quem você mudar é alterado; o ano não é necessário.</p>
+      <div class="row" style="gap:10px"><input class="input" id="an-busca" type="search" placeholder="Buscar médium…" autocomplete="off" style="flex:1;min-width:160px"><label class="row small" style="gap:6px"><input type="checkbox" id="an-falta" style="width:20px;height:20px"> Só quem falta</label></div>
+      <div id="an-lista" style="display:flex;flex-direction:column;gap:8px">${lista.map(m => `<div class="arow" data-nome="${esc(norm(m.nome))}" data-vazio="${m.aniversario ? 0 : 1}" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line)">
+        <span style="flex:1 1 170px;min-width:0;font-weight:600">${esc(m.nome)}${m.ativo === false ? ` <span class="pill">Inativo</span>` : ""}</span>
+        <span style="display:flex;gap:8px;flex:0 0 auto">${anivSelects(pre(m), m.aniversario, "width:86px;padding:8px")}</span></div>`).join("")}</div>`,
+    foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Salvar aniversários</button>`,
+    onSubmit: async fd => {
+      if (!guardWrite()) return;
+      const itens = [];
+      for (const m of lista){
+        const an = anivLer(fd, pre(m), m.aniversario);
+        if (!an.ok){ toast(`Escolha o dia e o mês de ${m.nome}, ou deixe os dois vazios.`, true); return; }
+        if ((an.iso || null) !== (m.aniversario || null)) itens.push({id: m.id, aniversario: an.iso});
+      }
+      if (!itens.length){ toast("Nada mudou.", true); return; }
+      try { const j = await mut("POST", "/api/mediuns/aniversarios", {itens}); closeModal(); toast(`${j.n} aniversário(s) salvo(s)`); }
+      catch (e){ toast(dbErr(e), true); }
+    }
+  });
+  const filtrar = () => {
+    const q = norm($("#an-busca").value), falta = $("#an-falta").checked;
+    document.querySelectorAll("#an-lista .arow").forEach(r => { r.style.display = (!q || r.dataset.nome.includes(q)) && (!falta || r.dataset.vazio === "1") ? "flex" : "none"; });
+  };
+  $("#an-busca").addEventListener("input", filtrar);
+  $("#an-busca").addEventListener("keydown", e => { if (e.key === "Enter") e.preventDefault(); });
+  $("#an-falta").addEventListener("change", filtrar);
+}
 function mediumImport(){
   openModal({
     title: "Adicionar vários médiuns",
-    body: `<p class="muted" style="margin:0">Cole um nome por linha. Se quiser, coloque o telefone depois de um ponto e vírgula: <b>Maria das Graças; (11) 98888-7777</b></p>
-      <textarea class="input" id="mi-txt" name="txt" placeholder="Maria das Graças&#10;João Batista; (11) 97777-6666&#10;Ana Paula"></textarea><div id="mi-prev" class="small muted"></div>`,
+    body: `<p class="muted" style="margin:0">Cole um nome por linha. Se quiser, coloque o telefone e o aniversário depois de ponto e vírgula: <b>Maria das Graças; (11) 98888-7777; 25/11</b></p>
+      <p class="muted small" style="margin:0">O aniversário pode ser <b>dd/mm</b> ou <b>dd/mm/aaaa</b>. Para quem já está cadastrado, só o aniversário é preenchido (se estiver vazio); nada mais é alterado. Sem telefone, deixe vazio: <b>Ana; ; 10/03</b></p>
+      <textarea class="input" id="mi-txt" name="txt" placeholder="Maria das Graças; (11) 98888-7777; 25/11&#10;João Batista; ; 03/07/1985&#10;Ana Paula"></textarea><div id="mi-prev" class="small muted"></div>`,
     foot: `<button type="button" class="btn ghost" data-act="modal-close">Cancelar</button><button type="submit" class="btn primary">Adicionar</button>`,
     onSubmit: async fd => {
       if (!guardWrite()) return;
-      const existing = new Set(S.mediuns.map(m => norm(m.nome)));
-      const rows = String(fd.get("txt") || "").split(/\r?\n/).map(l => l.split(/\t|;/).map(s => s.trim())).filter(c => c[0] && !existing.has(norm(c[0])));
-      if (!rows.length){ toast("Nenhum nome novo para adicionar.", true); return; }
-      try { const j = await mut("POST", "/api/mediuns/importar", {linhas: rows.map(c => ({nome: c[0], telefone: c[1] || ""}))}); closeModal(); toast(`${j.n} médium(ns) adicionado(s)`); }
-      catch (e){ toast(dbErr(e), true); }
+      const porNome = new Map(S.mediuns.map(m => [norm(m.nome), m]));
+      const rows = [], erros = [];
+      for (const l of String(fd.get("txt") || "").split(/\r?\n/)){
+        const c = l.split(/\t|;/).map(s => s.trim()); if (!c[0]) continue;
+        let aniv = null;
+        if (c[2]){
+          const mt = /^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{4}))?$/.exec(c[2]);
+          if (mt){ const iso = `${mt[3] || "2000"}-${mt[2].padStart(2, "0")}-${mt[1].padStart(2, "0")}`; const d = new Date(iso + "T00:00:00Z"); if (!isNaN(d) && d.toISOString().slice(0, 10) === iso) aniv = iso; }
+          if (!aniv){ erros.push(c[0]); continue; }
+        }
+        const ex = porNome.get(norm(c[0]));
+        if (ex && !aniv) continue;                       // já existe e não há aniversário novo
+        if (ex && ex.aniversario) continue;              // já tem aniversário: não sobrescreve
+        rows.push({nome: ex ? ex.nome : c[0], telefone: c[1] || "", aniversario: aniv});
+        if (!ex) porNome.set(norm(c[0]), {nome: c[0], aniversario: aniv});
+      }
+      if (erros.length){ toast(`Aniversário inválido para: ${erros.slice(0, 3).join(", ")}${erros.length > 3 ? "…" : ""}. Use dd/mm ou dd/mm/aaaa.`, true); return; }
+      if (!rows.length){ toast("Nada novo para adicionar ou atualizar.", true); return; }
+      try {
+        const j = await mut("POST", "/api/mediuns/importar", {linhas: rows});
+        closeModal();
+        toast([j.n ? `${j.n} médium(ns) adicionado(s)` : "", j.atualizados ? `${j.atualizados} aniversário(s) preenchido(s)` : ""].filter(Boolean).join(" · ") || "Nada foi alterado");
+      } catch (e){ toast(dbErr(e), true); }
     }
   });
   $("#mi-txt").addEventListener("input", e => { const n = e.target.value.split(/\r?\n/).filter(l => l.trim()).length; $("#mi-prev").textContent = n ? `${n} nome(s).` : ""; });
@@ -1184,7 +1279,7 @@ async function mediumOpen(id){
       const m = S.mediuns.find(x => x.id === id); const box = $("#md-live"); if (!m || !box) return;
       const sd = Number(m.saldo) || 0;
       box.innerHTML = `<div class="row" style="justify-content:space-between">
-        <div><div class="muted small">${esc(m.telefone || "Sem telefone")}${m.obs ? " · " + esc(m.obs) : ""}${m.ativo === false ? " · Inativo" : ""}</div></div>
+        <div><div class="muted small">${esc(m.telefone || "Sem telefone")}${m.aniversario ? " · 🎂 " + fmtAniv(m.aniversario) : ""}${m.obs ? " · " + esc(m.obs) : ""}${m.ativo === false ? " · Inativo" : ""}</div></div>
         <div style="text-align:right"><div class="lbl">Fiado em aberto</div><div class="num" style="font-family:var(--f-display);font-size:1.8rem;font-weight:700;color:${sd > 0.004 ? "var(--danger)" : "var(--accent)"}">${sd > 0.004 ? money(sd) : sd < -0.004 ? "Crédito " + money(-sd) : "Em dia"}</div>
         ${sd > 0.004 ? `<button type="button" class="btn sm" data-act="pg-quitar" data-v="${r2(sd)}">Quitar tudo</button>` : ""}</div></div>`;
       const ex = $("#md-extrato"); if (!ex || extrato === null) return;
@@ -1306,10 +1401,10 @@ async function exportExcel(){
   X.utils.book_append_sheet(wb, mkSheet(["Produto","Categoria","Qtd vendida","Faturamento","Custo","Lucro","Margem"], pp, {2:"qty",3:"money",4:"money",5:"money",6:"pct"}, [30,18,12,14,14,14,10]), "Por produto");
   // Por médium
   const mm = medMap();
-  const pm2 = [...S.mediuns].sort(byName).map(m => { const x = B.porMedium.get(m.id) || {n:0,total:0,conta:0,pago:0}; return [m.nome, m.telefone || "", x.n, r2(x.total), r2(x.pago), r2(x.conta), r2(Number(m.saldo)||0), m.ativo === false ? "Inativo" : "Ativo"]; });
-  for (const [id, x] of B.porMedium) if (!mm.has(id)) pm2.push([x.nome + " (excluído)", "", x.n, r2(x.total), r2(x.pago), r2(x.conta), 0, "Excluído"]);
+  const pm2 = [...S.mediuns].sort(byName).map(m => { const x = B.porMedium.get(m.id) || {n:0,total:0,conta:0,pago:0}; return [m.nome, m.telefone || "", m.aniversario ? fmtAniv(m.aniversario) : "", x.n, r2(x.total), r2(x.pago), r2(x.conta), r2(Number(m.saldo)||0), m.ativo === false ? "Inativo" : "Ativo"]; });
+  for (const [id, x] of B.porMedium) if (!mm.has(id)) pm2.push([x.nome + " (excluído)", "", "", x.n, r2(x.total), r2(x.pago), r2(x.conta), 0, "Excluído"]);
   if (B.avulso.n) pm2.push(["Consulentes / avulso", "", B.avulso.n, r2(B.avulso.total), r2(B.avulso.total), 0, 0, ""]);
-  X.utils.book_append_sheet(wb, mkSheet(["Médium","Telefone","Nº de compras","Total comprado","Pago na hora","Fiado","Fiado em aberto (hoje)","Situação"], pm2, {2:"int",3:"money",4:"money",5:"money",6:"money"}, [28,18,13,15,14,12,20,10]), "Por médium");
+  X.utils.book_append_sheet(wb, mkSheet(["Médium","Telefone","Aniversário","Nº de compras","Total comprado","Pago na hora","Fiado","Fiado em aberto (hoje)","Situação"], pm2, {3:"int",4:"money",5:"money",6:"money",7:"money"}, [28,18,12,13,15,14,12,20,10]), "Por médium");
   // Dívidas (posição de hoje)
   const dv = D.lista.map(x => [x.nome, x.fiado, x.pend.length, x.pend.map(refCurta).join(", "), x.mens, x.total]);
   if (dv.length) dv.push(["TOTAL", D.fiado, D.nMeses, "", D.mens, D.total]);
@@ -1369,6 +1464,7 @@ const ACT = {
   "ajuste": d => ajusteForm(d.id),
   "med-new": () => mediumForm(null),
   "med-import": () => mediumImport(),
+  "med-aniv": () => mediumAnivs(),
   "med-open": d => mediumOpen(d.id),
   "med-edit": d => mediumForm(S.mediuns.find(m => m.id === d.id)),
   "med-acerto": d => acertoForm(d.id),

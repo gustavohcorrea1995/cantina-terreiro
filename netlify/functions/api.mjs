@@ -997,8 +997,7 @@ var require_ms = __commonJS({
       if (ms >= m) {
         return Math.round(ms / m) + "m";
       }
-      if (ms >= s) {
-        return Math.round(ms / s) + "s";
+      if (ms >= s) {        return Math.round(ms / s) + "s";
       }
       return ms + "ms";
     }
@@ -1998,7 +1997,6 @@ var require_utf7 = __commonJS({
     };
   }
 });
-
 // node_modules/iconv-lite/encodings/sbcs-codec.js
 var require_sbcs_codec = __commonJS({
   "node_modules/iconv-lite/encodings/sbcs-codec.js"(exports) {
@@ -2475,7 +2473,10 @@ var require_sbcs_data_generated = __commonJS({
       "csibm863": "cp863",
       "cp864": {
         "type": "_sbcs",
-        "chars": "\0\x07\b	\n\v\f\r\x1B !\"#$\u066A&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7F\xB0\xB7\u2219\u221A\u2592\u2500\u2502\u253C\u2524\u252C\u251C\u2534\u2510\u250C\u2514\u2518\u03B2\u221E\u03C6\xB1\xBD\xBC\u2248\xAB\xBB\uFEF7\uFEF8\uFFFD\uFFFD\uFEFB\uFEFC\uFFFD\xA0\xAD\uFE82\xA3\xA4\uFE84\uFFFD\uFFFD\uFE8E\uFE8F\uFE95\uFE99\u060C\uFE9D\uFEA1\uFEA5\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669\uFED1\u061B\uFEB1\uFEB5\uFEB9\u061F\xA2\uFE80\uFE81\uFE83\uFE85\uFECA\uFE8B\uFE8D\uFE91\uFE93\uFE97\uFE9B\uFE9F\uFEA3\uFEA7\uFEA9\uFEAB\uFEAD\uFEAF\uFEB3\uFEB7\uFEBB\uFEBF\uFEC1\uFEC5\uFECB\uFECF\xA6\xAC\xF7\xD7\uFEC9\u0640\uFED3\uFED7\uFEDB\uFEDF\uFEE3\uFEE7\uFEEB\uFEED\uFEEF\uFEF3\uFEBD\uFECC\uFECE\uFECD\uFEE1\uFE7D\u0651\uFEE5\uFEE9\uFEEC\uFEF0\uFEF2\uFED0\uFED5\uFEF5\uFEF6\uFEDD\uFED9\uFEF1\u25A0\uFFFD"
+        "chars": "\0\x07\b	\n\v\f\r\x1B
+
+
+ !\"#$\u066A&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7F\xB0\xB7\u2219\u221A\u2592\u2500\u2502\u253C\u2524\u252C\u251C\u2534\u2510\u250C\u2514\u2518\u03B2\u221E\u03C6\xB1\xBD\xBC\u2248\xAB\xBB\uFEF7\uFEF8\uFFFD\uFFFD\uFEFB\uFEFC\uFFFD\xA0\xAD\uFE82\xA3\xA4\uFE84\uFFFD\uFFFD\uFE8E\uFE8F\uFE95\uFE99\u060C\uFE9D\uFEA1\uFEA5\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669\uFED1\u061B\uFEB1\uFEB5\uFEB9\u061F\xA2\uFE80\uFE81\uFE83\uFE85\uFECA\uFE8B\uFE8D\uFE91\uFE93\uFE97\uFE9B\uFE9F\uFEA3\uFEA7\uFEA9\uFEAB\uFEAD\uFEAF\uFEB3\uFEB7\uFEBB\uFEBF\uFEC1\uFEC5\uFECB\uFECF\xA6\xAC\xF7\xD7\uFEC9\u0640\uFED3\uFED7\uFEDB\uFEDF\uFEE3\uFEE7\uFEEB\uFEED\uFEEF\uFEF3\uFEBD\uFECC\uFECE\uFECD\uFEE1\uFE7D\u0651\uFEE5\uFEE9\uFEEC\uFEF0\uFEF2\uFED0\uFED5\uFEF5\uFEF6\uFEDD\uFED9\uFEF1\u25A0\uFFFD"
       },
       "ibm864": "cp864",
       "csibm864": "cp864",
@@ -2613,7 +2614,10 @@ var require_sbcs_data_generated = __commonJS({
       },
       "tcvn": {
         "type": "_sbcs",
-        "chars": "\0\xDA\u1EE4\u1EEA\u1EEC\u1EEE\x07\b	\n\v\f\r\u1EE8\u1EF0\u1EF2\u1EF6\u1EF8\xDD\u1EF4\x1B !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7F\xC0\u1EA2\xC3\xC1\u1EA0\u1EB6\u1EAC\xC8\u1EBA\u1EBC\xC9\u1EB8\u1EC6\xCC\u1EC8\u0128\xCD\u1ECA\xD2\u1ECE\xD5\xD3\u1ECC\u1ED8\u1EDC\u1EDE\u1EE0\u1EDA\u1EE2\xD9\u1EE6\u0168\xA0\u0102\xC2\xCA\xD4\u01A0\u01AF\u0110\u0103\xE2\xEA\xF4\u01A1\u01B0\u0111\u1EB0\u0300\u0309\u0303\u0301\u0323\xE0\u1EA3\xE3\xE1\u1EA1\u1EB2\u1EB1\u1EB3\u1EB5\u1EAF\u1EB4\u1EAE\u1EA6\u1EA8\u1EAA\u1EA4\u1EC0\u1EB7\u1EA7\u1EA9\u1EAB\u1EA5\u1EAD\xE8\u1EC2\u1EBB\u1EBD\xE9\u1EB9\u1EC1\u1EC3\u1EC5\u1EBF\u1EC7\xEC\u1EC9\u1EC4\u1EBE\u1ED2\u0129\xED\u1ECB\xF2\u1ED4\u1ECF\xF5\xF3\u1ECD\u1ED3\u1ED5\u1ED7\u1ED1\u1ED9\u1EDD\u1EDF\u1EE1\u1EDB\u1EE3\xF9\u1ED6\u1EE7\u0169\xFA\u1EE5\u1EEB\u1EED\u1EEF\u1EE9\u1EF1\u1EF3\u1EF7\u1EF9\xFD\u1EF5\u1ED0"
+        "chars": "\0\xDA\u1EE4\u1EEA\u1EEC\u1EEE\x07\b	\n\v\f\r\u1EE8\u1EF0\u1EF2\u1EF6\u1EF8\xDD\u1EF4\x1B
+
+
+ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7F\xC0\u1EA2\xC3\xC1\u1EA0\u1EB6\u1EAC\xC8\u1EBA\u1EBC\xC9\u1EB8\u1EC6\xCC\u1EC8\u0128\xCD\u1ECA\xD2\u1ECE\xD5\xD3\u1ECC\u1ED8\u1EDC\u1EDE\u1EE0\u1EDA\u1EE2\xD9\u1EE6\u0168\xA0\u0102\xC2\xCA\xD4\u01A0\u01AF\u0110\u0103\xE2\xEA\xF4\u01A1\u01B0\u0111\u1EB0\u0300\u0309\u0303\u0301\u0323\xE0\u1EA3\xE3\xE1\u1EA1\u1EB2\u1EB1\u1EB3\u1EB5\u1EAF\u1EB4\u1EAE\u1EA6\u1EA8\u1EAA\u1EA4\u1EC0\u1EB7\u1EA7\u1EA9\u1EAB\u1EA5\u1EAD\xE8\u1EC2\u1EBB\u1EBD\xE9\u1EB9\u1EC1\u1EC3\u1EC5\u1EBF\u1EC7\xEC\u1EC9\u1EC4\u1EBE\u1ED2\u0129\xED\u1ECB\xF2\u1ED4\u1ECF\xF5\xF3\u1ECD\u1ED3\u1ED5\u1ED7\u1ED1\u1ED9\u1EDD\u1EDF\u1EE1\u1EDB\u1EE3\xF9\u1ED6\u1EE7\u0169\xFA\u1EE5\u1EEB\u1EED\u1EEF\u1EE9\u1EF1\u1EF3\u1EF7\u1EF9\xFD\u1EF5\u1ED0"
       },
       "georgianacademy": {
         "type": "_sbcs",
@@ -2629,15 +2633,23 @@ var require_sbcs_data_generated = __commonJS({
       },
       "viscii": {
         "type": "_sbcs",
-        "chars": "\0\u1EB2\u1EB4\u1EAA\x07\b	\n\v\f\r\u1EF6\u1EF8\x1B\u1EF4 !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7F\u1EA0\u1EAE\u1EB0\u1EB6\u1EA4\u1EA6\u1EA8\u1EAC\u1EBC\u1EB8\u1EBE\u1EC0\u1EC2\u1EC4\u1EC6\u1ED0\u1ED2\u1ED4\u1ED6\u1ED8\u1EE2\u1EDA\u1EDC\u1EDE\u1ECA\u1ECE\u1ECC\u1EC8\u1EE6\u0168\u1EE4\u1EF2\xD5\u1EAF\u1EB1\u1EB7\u1EA5\u1EA7\u1EA9\u1EAD\u1EBD\u1EB9\u1EBF\u1EC1\u1EC3\u1EC5\u1EC7\u1ED1\u1ED3\u1ED5\u1ED7\u1EE0\u01A0\u1ED9\u1EDD\u1EDF\u1ECB\u1EF0\u1EE8\u1EEA\u1EEC\u01A1\u1EDB\u01AF\xC0\xC1\xC2\xC3\u1EA2\u0102\u1EB3\u1EB5\xC8\xC9\xCA\u1EBA\xCC\xCD\u0128\u1EF3\u0110\u1EE9\xD2\xD3\xD4\u1EA1\u1EF7\u1EEB\u1EED\xD9\xDA\u1EF9\u1EF5\xDD\u1EE1\u01B0\xE0\xE1\xE2\xE3\u1EA3\u0103\u1EEF\u1EAB\xE8\xE9\xEA\u1EBB\xEC\xED\u0129\u1EC9\u0111\u1EF1\xF2\xF3\xF4\xF5\u1ECF\u1ECD\u1EE5\xF9\xFA\u0169\u1EE7\xFD\u1EE3\u1EEE"
+        "chars": "\0\u1EB2\u1EB4\u1EAA\x07\b	\n\v\f\r\u1EF6\u1EF8\x1B
+
+\u1EF4 !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7F\u1EA0\u1EAE\u1EB0\u1EB6\u1EA4\u1EA6\u1EA8\u1EAC\u1EBC\u1EB8\u1EBE\u1EC0\u1EC2\u1EC4\u1EC6\u1ED0\u1ED2\u1ED4\u1ED6\u1ED8\u1EE2\u1EDA\u1EDC\u1EDE\u1ECA\u1ECE\u1ECC\u1EC8\u1EE6\u0168\u1EE4\u1EF2\xD5\u1EAF\u1EB1\u1EB7\u1EA5\u1EA7\u1EA9\u1EAD\u1EBD\u1EB9\u1EBF\u1EC1\u1EC3\u1EC5\u1EC7\u1ED1\u1ED3\u1ED5\u1ED7\u1EE0\u01A0\u1ED9\u1EDD\u1EDF\u1ECB\u1EF0\u1EE8\u1EEA\u1EEC\u01A1\u1EDB\u01AF\xC0\xC1\xC2\xC3\u1EA2\u0102\u1EB3\u1EB5\xC8\xC9\xCA\u1EBA\xCC\xCD\u0128\u1EF3\u0110\u1EE9\xD2\xD3\xD4\u1EA1\u1EF7\u1EEB\u1EED\xD9\xDA\u1EF9\u1EF5\xDD\u1EE1\u01B0\xE0\xE1\xE2\xE3\u1EA3\u0103\u1EEF\u1EAB\xE8\xE9\xEA\u1EBB\xEC\xED\u0129\u1EC9\u0111\u1EF1\xF2\xF3\xF4\xF5\u1ECF\u1ECD\u1EE5\xF9\xFA\u0169\u1EE7\xFD\u1EE3\u1EEE"
       },
       "iso646cn": {
         "type": "_sbcs",
-        "chars": "\0\x07\b	\n\v\f\r\x1B !\"#\xA5%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}\u203E\x7F\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"
+        "chars": "\0\x07\b	\n\v\f\r\x1B
+
+
+ !\"#\xA5%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}\u203E\x7F\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"
       },
       "iso646jp": {
         "type": "_sbcs",
-        "chars": "\0\x07\b	\n\v\f\r\x1B !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\xA5]^_`abcdefghijklmnopqrstuvwxyz{|}\u203E\x7F\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"
+        "chars": "\0\x07\b	\n\v\f\r\x1B
+
+
+ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\xA5]^_`abcdefghijklmnopqrstuvwxyz{|}\u203E\x7F\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"
       },
       "hproman8": {
         "type": "_sbcs",
@@ -2983,8 +2995,7 @@ var require_dbcs_codec = __commonJS({
           var idx = findIdx(this.gb18030.gbChars, ptr);
           uCode = this.gb18030.uChars[idx] + ptr - this.gb18030.gbChars[idx];
         } else if (uCode <= NODE_START) {
-          nodeIdx = NODE_START - uCode;
-          continue;
+          nodeIdx = NODE_START - uCode;          continue;
         } else if (uCode <= SEQ_START) {
           var seq = this.decodeTableSeq[SEQ_START - uCode];
           for (var k = 0; k < seq.length - 1; k++) {
@@ -3983,8 +3994,7 @@ var require_cp950 = __commonJS({
       ["0", "\0", 127],
       ["a140", "\u3000\uFF0C\u3001\u3002\uFF0E\u2027\uFF1B\uFF1A\uFF1F\uFF01\uFE30\u2026\u2025\uFE50\uFE51\uFE52\xB7\uFE54\uFE55\uFE56\uFE57\uFF5C\u2013\uFE31\u2014\uFE33\u2574\uFE34\uFE4F\uFF08\uFF09\uFE35\uFE36\uFF5B\uFF5D\uFE37\uFE38\u3014\u3015\uFE39\uFE3A\u3010\u3011\uFE3B\uFE3C\u300A\u300B\uFE3D\uFE3E\u3008\u3009\uFE3F\uFE40\u300C\u300D\uFE41\uFE42\u300E\u300F\uFE43\uFE44\uFE59\uFE5A"],
       ["a1a1", "\uFE5B\uFE5C\uFE5D\uFE5E\u2018\u2019\u201C\u201D\u301D\u301E\u2035\u2032\uFF03\uFF06\uFF0A\u203B\xA7\u3003\u25CB\u25CF\u25B3\u25B2\u25CE\u2606\u2605\u25C7\u25C6\u25A1\u25A0\u25BD\u25BC\u32A3\u2105\xAF\uFFE3\uFF3F\u02CD\uFE49\uFE4A\uFE4D\uFE4E\uFE4B\uFE4C\uFE5F\uFE60\uFE61\uFF0B\uFF0D\xD7\xF7\xB1\u221A\uFF1C\uFF1E\uFF1D\u2266\u2267\u2260\u221E\u2252\u2261\uFE62", 4, "\uFF5E\u2229\u222A\u22A5\u2220\u221F\u22BF\u33D2\u33D1\u222B\u222E\u2235\u2234\u2640\u2642\u2295\u2299\u2191\u2193\u2190\u2192\u2196\u2197\u2199\u2198\u2225\u2223\uFF0F"],
-      ["a240", "\uFF3C\u2215\uFE68\uFF04\uFFE5\u3012\uFFE0\uFFE1\uFF05\uFF20\u2103\u2109\uFE69\uFE6A\uFE6B\u33D5\u339C\u339D\u339E\u33CE\u33A1\u338E\u338F\u33C4\xB0\u5159\u515B\u515E\u515D\u5161\u5163\u55E7\u74E9\u7CCE\u2581", 7, "\u258F\u258E\u258D\u258C\u258B\u258A\u2589\u253C\u2534\u252C\u2524\u251C\u2594\u2500\u2502\u2595\u250C\u2510\u2514\u2518\u256D"],
-      ["a2a1", "\u256E\u2570\u256F\u2550\u255E\u256A\u2561\u25E2\u25E3\u25E5\u25E4\u2571\u2572\u2573\uFF10", 9, "\u2160", 9, "\u3021", 8, "\u5341\u5344\u5345\uFF21", 25, "\uFF41", 21],
+      ["a240", "\uFF3C\u2215\uFE68\uFF04\uFFE5\u3012\uFFE0\uFFE1\uFF05\uFF20\u2103\u2109\uFE69\uFE6A\uFE6B\u33D5\u339C\u339D\u339E\u33CE\u33A1\u338E\u338F\u33C4\xB0\u5159\u515B\u515E\u515D\u5161\u5163\u55E7\u74E9\u7CCE\u2581", 7, "\u258F\u258E\u258D\u258C\u258B\u258A\u2589\u253C\u2534\u252C\u2524\u251C\u2594\u2500\u2502\u2595\u250C\u2510\u2514\u2518\u256D"],      ["a2a1", "\u256E\u2570\u256F\u2550\u255E\u256A\u2561\u25E2\u25E3\u25E5\u25E4\u2571\u2572\u2573\uFF10", 9, "\u2160", 9, "\u3021", 8, "\u5341\u5344\u5345\uFF21", 25, "\uFF41", 21],
       ["a340", "\uFF57\uFF58\uFF59\uFF5A\u0391", 16, "\u03A3", 6, "\u03B1", 16, "\u03C3", 6, "\u3105", 10],
       ["a3a1", "\u3110", 25, "\u02D9\u02C9\u02CA\u02C7\u02CB"],
       ["a3e1", "\u20AC"],
@@ -4983,8 +4993,7 @@ var require_raw_body = __commonJS({
       var decoder;
       try {
         decoder = getDecoder(encoding);
-      } catch (err) {
-        return done(err);
+      } catch (err) {        return done(err);
       }
       var buffer = decoder ? "" : [];
       stream.on("aborted", onAborted);
@@ -5983,8 +5992,7 @@ var require_db = __commonJS({
       },
       "application/encaprtp": {
         source: "iana"
-      },
-      "application/epp+xml": {
+      },      "application/epp+xml": {
         source: "iana",
         compressible: true
       },
@@ -6983,8 +6991,7 @@ var require_db = __commonJS({
         source: "iana",
         extensions: ["setpay"]
       },
-      "application/set-registration": {
-        source: "iana"
+      "application/set-registration": {        source: "iana"
       },
       "application/set-registration-initiation": {
         source: "iana",
@@ -7983,8 +7990,7 @@ var require_db = __commonJS({
         compressible: true
       },
       "application/vnd.dataresource+json": {
-        source: "iana",
-        compressible: true
+        source: "iana",        compressible: true
       },
       "application/vnd.dbf": {
         source: "iana",
@@ -8983,8 +8989,7 @@ var require_db = __commonJS({
       "application/vnd.las.las+json": {
         source: "iana",
         compressible: true
-      },
-      "application/vnd.las.las+xml": {
+      },      "application/vnd.las.las+xml": {
         source: "iana",
         compressible: true,
         extensions: ["lasxml"]
@@ -9983,8 +9988,7 @@ var require_db = __commonJS({
       },
       "application/vnd.openxmlformats-officedocument.presentationml.template": {
         source: "iana",
-        extensions: ["potx"]
-      },
+        extensions: ["potx"]      },
       "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml": {
         source: "iana",
         compressible: true
@@ -10983,8 +10987,7 @@ var require_db = __commonJS({
         source: "iana",
         compressible: true
       },
-      "application/vnd.xara": {
-        source: "iana",
+      "application/vnd.xara": {        source: "iana",
         extensions: ["xar"]
       },
       "application/vnd.xfdl": {
@@ -11983,8 +11986,7 @@ var require_db = __commonJS({
         source: "iana"
       },
       "audio/evs": {
-        source: "iana"
-      },
+        source: "iana"      },
       "audio/flexfec": {
         source: "iana"
       },
@@ -12983,8 +12985,7 @@ var require_db = __commonJS({
         source: "iana"
       },
       "model/gltf+json": {
-        source: "iana",
-        compressible: true,
+        source: "iana",        compressible: true,
         extensions: ["gltf"]
       },
       "model/gltf-binary": {
@@ -13983,8 +13984,7 @@ var require_db = __commonJS({
         compressible: false,
         extensions: ["wmv"]
       },
-      "video/x-ms-wmx": {
-        source: "apache",
+      "video/x-ms-wmx": {        source: "apache",
         extensions: ["wmx"]
       },
       "video/x-ms-wvx": {
@@ -14983,8 +14983,7 @@ var require_object_inspect = __commonJS({
       if (isArr) {
         xs.length = obj.length;
         for (var i = 0; i < obj.length; i++) {
-          xs[i] = has(obj, i) ? inspect(obj[i], obj) : "";
-        }
+          xs[i] = has(obj, i) ? inspect(obj[i], obj) : "";        }
       }
       var syms = typeof gOPS === "function" ? gOPS(obj) : [];
       var symMap;
@@ -15983,8 +15982,7 @@ var require_side_channel_map = __commonJS({
           $mapSet($m, key, value);
         }
       };
-      return channel;
-    };
+      return channel;    };
   }
 });
 
@@ -16983,8 +16981,7 @@ var require_urlencoded = __commonJS({
         }
       }
       return count;
-    }
-    function parser(name) {
+    }    function parser(name) {
       var mod = parsers[name];
       if (mod !== void 0) {
         return mod.parse;
@@ -17983,8 +17980,7 @@ var require_router = __commonJS({
             next(layerError || err2);
           } else if (route) {
             layer.handle_request(req, res, next);
-          } else {
-            trim_prefix(layer, layerError, layerPath, path);
+          } else {            trim_prefix(layer, layerError, layerPath, path);
           }
           sync = 0;
         });
@@ -18983,8 +18979,7 @@ var require_send = __commonJS({
     var resolve = path.resolve;
     var sep = path.sep;
     var BYTES_RANGE_REGEXP = /^ *bytes=/;
-    var MAX_MAXAGE = 60 * 60 * 24 * 365 * 1e3;
-    var UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
+    var MAX_MAXAGE = 60 * 60 * 24 * 365 * 1e3;    var UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
     module.exports = send;
     module.exports.mime = mime;
     function send(req, path2, options) {
@@ -19983,8 +19978,7 @@ var require_ipaddr = __commonJS({
           }
         }
         return null;
-      };
-      ipaddr.IPv4.isIPv4 = ipaddr.IPv6.isIPv6 = function(string) {
+      };      ipaddr.IPv4.isIPv4 = ipaddr.IPv6.isIPv6 = function(string) {
         return this.parser(string) !== null;
       };
       ipaddr.IPv4.isValid = function(string) {
@@ -20983,8 +20977,7 @@ var require_language = __commonJS({
         i,
         full
       };
-    }
-    function getLanguagePriority(language, accepted, index) {
+    }    function getLanguagePriority(language, accepted, index) {
       var priority = { o: -1, q: 0, s: 0 };
       for (var i = 0; i < accepted.length; i++) {
         var spec = specify(language, accepted[i], index);
@@ -21983,8 +21976,7 @@ var require_response = __commonJS({
       var file = send(req, pathname, opts);
       sendfile(res2, file, opts, function(err) {
         if (done) return done(err);
-        if (err && err.code === "EISDIR") return next();
-        if (err && err.code !== "ECONNABORTED" && err.syscall !== "write") {
+        if (err && err.code === "EISDIR") return next();        if (err && err.code !== "ECONNABORTED" && err.syscall !== "write") {
           next(err);
         }
       });
@@ -22983,8 +22975,7 @@ var require_textParsers = __commonJS({
       register(701, parseFloat);
       register(16, parseBool);
       register(1082, parseDate);
-      register(1114, parseDate);
-      register(1184, parseDate);
+      register(1114, parseDate);      register(1184, parseDate);
       register(600, parsePoint);
       register(651, parseStringArray);
       register(718, parseCircle);
@@ -23983,8 +23974,7 @@ var require_pg_connection_string = __commonJS({
         config2.ssl.ca = fs.readFileSync(config2.sslrootcert).toString();
       }
       if (options.useLibpqCompat && config2.uselibpqcompat) {
-        throw new Error("Both useLibpqCompat and uselibpqcompat are set. Please use only one of them.");
-      }
+        throw new Error("Both useLibpqCompat and uselibpqcompat are set. Please use only one of them.");      }
       if (config2.uselibpqcompat === "true" || options.useLibpqCompat) {
         switch (config2.sslmode) {
           case "disable": {
@@ -24983,8 +24973,7 @@ var require_serializer = __commonJS({
     );
     var endBuffer = codeOnlyBuffer(
       88
-      /* code.end */
-    );
+      /* code.end */    );
     var copyDoneBuffer = codeOnlyBuffer(
       99
       /* code.copyDone */
@@ -25983,8 +25972,7 @@ var require_client = __commonJS({
               }
             } else if (!this._connectionError) {
               this._handleErrorEvent(error);
-            }
-          }
+            }          }
           process.nextTick(() => {
             this.emit("end");
           });
@@ -26983,8 +26971,7 @@ var require_client2 = __commonJS({
       var cp = this.connectionParameters = new ConnectionParameters(config2);
       if (config2.nativeConnectionString) cp.nativeConnectionString = config2.nativeConnectionString;
       this.user = cp.user;
-      Object.defineProperty(this, "password", {
-        configurable: true,
+      Object.defineProperty(this, "password", {        configurable: true,
         enumerable: false,
         writable: true,
         value: cp.password
@@ -27616,6 +27603,7 @@ CREATE TABLE IF NOT EXISTS acertos (
   valor numeric(12,2) NOT NULL, saldo_novo numeric(12,2) NOT NULL, descricao text NOT NULL DEFAULT '');
 CREATE INDEX IF NOT EXISTS acertos_medium ON acertos (medium_id);
 ALTER TABLE mediuns ADD COLUMN IF NOT EXISTS mensalidade boolean NOT NULL DEFAULT true;
+ALTER TABLE mediuns ADD COLUMN IF NOT EXISTS aniversario date;
 CREATE TABLE IF NOT EXISTS mensalidades (
   id text PRIMARY KEY, medium_id text NOT NULL, medium_nome text NOT NULL DEFAULT '', referencia text NOT NULL,
   status text NOT NULL, valor numeric(12,2) NOT NULL DEFAULT 0, dia date, forma text NOT NULL DEFAULT '', obs text NOT NULL DEFAULT '',
@@ -27957,29 +27945,56 @@ CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
       });
       res.json({ delta });
     }));
+    function validaAniv(v) {
+      if (!v) return null;
+      const d = /* @__PURE__ */ new Date(String(v) + "T00:00:00Z");
+      if (!isDia(v) || isNaN(d) || d.toISOString().slice(0, 10) !== v) throw new Erro("Data de anivers\xE1rio inv\xE1lida.");
+      return v;
+    }
     function dadosMedium(b) {
       const nome = txt(b.nome, 120);
       if (!nome) throw new Erro("Informe o nome.");
-      return { nome, telefone: txt(b.telefone, 40), obs: txt(b.obs, 200), ativo: b.ativo !== false, mensalidade: b.mensalidade !== false };
+      const aniversario = validaAniv(b.aniversario);
+      return { nome, telefone: txt(b.telefone, 40), obs: txt(b.obs, 200), ativo: b.ativo !== false, mensalidade: b.mensalidade !== false, aniversario };
     }
     app2.post("/api/mediuns", h(async (req, res) => {
       const d = dadosMedium(req.body || {});
       const mid = id();
-      await tx((c) => c.query("INSERT INTO mediuns (id, nome, telefone, obs, ativo, mensalidade) VALUES ($1,$2,$3,$4,$5,$6)", [mid, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade]));
+      await tx((c) => c.query("INSERT INTO mediuns (id, nome, telefone, obs, ativo, mensalidade, aniversario) VALUES ($1,$2,$3,$4,$5,$6,$7)", [mid, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade, d.aniversario]));
       res.json({ id: mid });
     }));
     app2.post("/api/mediuns/importar", h(async (req, res) => {
       const lista = Array.isArray(req.body?.linhas) ? req.body.linhas.slice(0, 500) : [];
-      const n = await tx(async (c) => {
-        const ex = new Set((await c.query("SELECT lower(nome) n FROM mediuns")).rows.map((r) => r.n));
-        let n2 = 0;
+      const r = await tx(async (c) => {
+        const ex = new Map((await c.query("SELECT id, lower(nome) n, aniversario FROM mediuns")).rows.map((r4) => [r4.n, r4]));
+        let n = 0, atualizados = 0;
         for (const l of lista) {
           const nome = txt(l.nome, 120);
-          if (!nome || ex.has(nome.toLowerCase())) continue;
-          ex.add(nome.toLowerCase());
-          await c.query("INSERT INTO mediuns (id, nome, telefone) VALUES ($1,$2,$3)", [id(), nome, txt(l.telefone, 40)]);
-          n2++;
+          if (!nome) continue;          const aniv = validaAniv(l.aniversario || null);
+          const atual = ex.get(nome.toLowerCase());
+          if (atual) {
+            if (aniv && !atual.aniversario) {
+              await c.query("UPDATE mediuns SET aniversario = $2 WHERE id = $1", [atual.id, aniv]);
+              atual.aniversario = aniv;
+              atualizados++;
+            }
+            continue;
+          }
+          const mid = id();
+          ex.set(nome.toLowerCase(), { id: mid, n: nome.toLowerCase(), aniversario: aniv });
+          await c.query("INSERT INTO mediuns (id, nome, telefone, aniversario) VALUES ($1,$2,$3,$4)", [mid, nome, txt(l.telefone, 40), aniv]);
+          n++;
         }
+        return { n, atualizados };
+      });
+      res.json(r);
+    }));
+    app2.post("/api/mediuns/aniversarios", h(async (req, res) => {
+      const itens = Array.isArray(req.body?.itens) ? req.body.itens.slice(0, 500) : [];
+      const lote = itens.map((i) => ({ id: txt(i?.id, 40), aniv: validaAniv(i?.aniversario || null) })).filter((i) => i.id);
+      const n = await tx(async (c) => {
+        let n2 = 0;
+        for (const i of lote) n2 += (await c.query("UPDATE mediuns SET aniversario = $2 WHERE id = $1", [i.id, i.aniv])).rowCount;
         return n2;
       });
       res.json({ n });
@@ -27987,7 +28002,7 @@ CREATE INDEX IF NOT EXISTS mensalidades_ref ON mensalidades (referencia);
     app2.put("/api/mediuns/:id", h(async (req, res) => {
       const d = dadosMedium(req.body || {});
       const r = await tx(async (c) => {
-        const r4 = await c.query("UPDATE mediuns SET nome=$2, telefone=$3, obs=$4, ativo=$5, mensalidade=$6 WHERE id=$1", [req.params.id, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade]);
+        const r4 = await c.query("UPDATE mediuns SET nome=$2, telefone=$3, obs=$4, ativo=$5, mensalidade=$6, aniversario=$7 WHERE id=$1", [req.params.id, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade, d.aniversario]);
         await c.query("UPDATE mensalidades SET medium_nome = $2 WHERE medium_id = $1", [req.params.id, d.nome]);
         return r4;
       });
