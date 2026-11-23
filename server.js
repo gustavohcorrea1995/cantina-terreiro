@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS acertos (
   valor numeric(12,2) NOT NULL, saldo_novo numeric(12,2) NOT NULL, descricao text NOT NULL DEFAULT '');
 CREATE INDEX IF NOT EXISTS acertos_medium ON acertos (medium_id);
 ALTER TABLE mediuns ADD COLUMN IF NOT EXISTS mensalidade boolean NOT NULL DEFAULT true;
+ALTER TABLE mediuns ADD COLUMN IF NOT EXISTS aniversario date;
 CREATE TABLE IF NOT EXISTS mensalidades (
   id text PRIMARY KEY, medium_id text NOT NULL, medium_nome text NOT NULL DEFAULT '', referencia text NOT NULL,
   status text NOT NULL, valor numeric(12,2) NOT NULL DEFAULT 0, dia date, forma text NOT NULL DEFAULT '', obs text NOT NULL DEFAULT '',
@@ -401,34 +402,50 @@ app.post("/api/ajustes", h(async (req, res) => {
 }));
 
 /* médiuns e contas */
+// aniversário: só o dia e o mês importam; o ano é guardado apenas porque o campo é uma data completa
+function validaAniv(v) {
+  if (!v) return null;
+  const d = new Date(String(v) + "T00:00:00Z");
+  if (!isDia(v) || isNaN(d) || d.toISOString().slice(0, 10) !== v) throw new Erro("Data de aniversário inválida.");
+  return v;
+}
 function dadosMedium(b) {
   const nome = txt(b.nome, 120);
   if (!nome) throw new Erro("Informe o nome.");
-  return { nome, telefone: txt(b.telefone, 40), obs: txt(b.obs, 200), ativo: b.ativo !== false, mensalidade: b.mensalidade !== false };
+  const aniversario = validaAniv(b.aniversario);
+  return { nome, telefone: txt(b.telefone, 40), obs: txt(b.obs, 200), ativo: b.ativo !== false, mensalidade: b.mensalidade !== false, aniversario };
 }
 app.post("/api/mediuns", h(async (req, res) => {
   const d = dadosMedium(req.body || {}); const mid = id();
-  await tx(c => c.query("INSERT INTO mediuns (id, nome, telefone, obs, ativo, mensalidade) VALUES ($1,$2,$3,$4,$5,$6)", [mid, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade]));
+  await tx(c => c.query("INSERT INTO mediuns (id, nome, telefone, obs, ativo, mensalidade, aniversario) VALUES ($1,$2,$3,$4,$5,$6,$7)", [mid, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade, d.aniversario]));
   res.json({ id: mid });
 }));
 app.post("/api/mediuns/importar", h(async (req, res) => {
   const lista = Array.isArray(req.body?.linhas) ? req.body.linhas.slice(0, 500) : [];
-  const n = await tx(async c => {
-    const ex = new Set((await c.query("SELECT lower(nome) n FROM mediuns")).rows.map(r => r.n));
-    let n = 0;
+  const r = await tx(async c => {
+    const ex = new Map((await c.query("SELECT id, lower(nome) n, aniversario FROM mediuns")).rows.map(r => [r.n, r]));
+    let n = 0, atualizados = 0;
     for (const l of lista) {
-      const nome = txt(l.nome, 120); if (!nome || ex.has(nome.toLowerCase())) continue;
-      ex.add(nome.toLowerCase());
-      await c.query("INSERT INTO mediuns (id, nome, telefone) VALUES ($1,$2,$3)", [id(), nome, txt(l.telefone, 40)]); n++;
+      const nome = txt(l.nome, 120); if (!nome) continue;
+      const aniv = validaAniv(l.aniversario || null);
+      const atual = ex.get(nome.toLowerCase());
+      if (atual) {
+        // médium que já existe: só preenche o aniversário se ainda estiver vazio (nunca sobrescreve)
+        if (aniv && !atual.aniversario) { await c.query("UPDATE mediuns SET aniversario = $2 WHERE id = $1", [atual.id, aniv]); atual.aniversario = aniv; atualizados++; }
+        continue;
+      }
+      const mid = id();
+      ex.set(nome.toLowerCase(), { id: mid, n: nome.toLowerCase(), aniversario: aniv });
+      await c.query("INSERT INTO mediuns (id, nome, telefone, aniversario) VALUES ($1,$2,$3,$4)", [mid, nome, txt(l.telefone, 40), aniv]); n++;
     }
-    return n;
+    return { n, atualizados };
   });
-  res.json({ n });
+  res.json(r);
 }));
 app.put("/api/mediuns/:id", h(async (req, res) => {
   const d = dadosMedium(req.body || {});
   const r = await tx(async c => {
-    const r = await c.query("UPDATE mediuns SET nome=$2, telefone=$3, obs=$4, ativo=$5, mensalidade=$6 WHERE id=$1", [req.params.id, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade]);
+    const r = await c.query("UPDATE mediuns SET nome=$2, telefone=$3, obs=$4, ativo=$5, mensalidade=$6, aniversario=$7 WHERE id=$1", [req.params.id, d.nome, d.telefone, d.obs, d.ativo, d.mensalidade, d.aniversario]);
     await c.query("UPDATE mensalidades SET medium_nome = $2 WHERE medium_id = $1", [req.params.id, d.nome]);
     return r;
   });
